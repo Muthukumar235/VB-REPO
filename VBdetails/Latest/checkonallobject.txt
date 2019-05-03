@@ -1,0 +1,38 @@
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+WebRadioGroup
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+Set rdgrop=Description.Create()
+rdgrop("html tag").Value = "INPUT" 
+rdgrop("type").Value = "radio"
+Set radiobtn = browser("MAPS - TerminalProfile").Page("MAPS - TerminalProfile").childobjects(rdgrop)
+NoOfChildObjs = radiobtn.Count 
+For Counter=0 to NoOfChildObjs-1 
+       radiobtn(Counter).Select 0
+Next 
+
+
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+checkbox
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Set check=Description.Create()
+
+check("name").value="reasonId"
+check("type").value="checkbox"
+check("html tag").value="INPUT"
+
+ set a=Browser("MAPS").Page("MAPS").ChildObjects(check)
+
+cnt=a.count
+
+For i=0 to cnt-1
+
+	a(i).set "ON"
+
+Next

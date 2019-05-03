@@ -1,0 +1,28 @@
+Function MAPS_LinkClick (Param1,index1,Param2,index2,Param3,index3)
+'StrLinkflag=0
+	Set MainMenu=Description.Create()
+	MainMenu("html tag").value="A"
+	MainMenu("text").value=Param1
+	MainMenu("index").value=index1
+	
+	 Set SubMenu1=Description.Create()
+	SubMenu1("html tag").value="A"
+	SubMenu1("text").value=Param2
+	SubMenu1("index").value=index2
+	
+	Set SubMenu2=Description.Create()
+	SubMenu2("html tag").value="A"
+	SubMenu2("text").value=Param3
+	SubMenu2("index").value=index3
+	
+'Browser("micclass:=Browser").Page("micclass:=Page").link(Mainmenu).FireEvent "onmouseover"
+'Browser("micclass:=Browser").Page("micclass:=Page").link(SubMenu1).FireEvent "onmouseover"
+'Browser("micclass:=Browser").Page("micclass:=Page").link(SubMenu2).FireEvent  "onclick"
+
+Browser("name:=([A-Z].*|)").Page("title:=([A-Z].*|)").link(Mainmenu).FireEvent "onmouseover"
+Browser("name:=([A-Z].*|)").Page("title:=([A-Z].*|)").link(SubMenu1).FireEvent "onmouseover"
+Browser("name:=([A-Z].*|)").Page("title:=([A-Z].*|)").link(SubMenu2).FireEvent  "onclick"
+
+'StrLinkflag=1
+'MAPS_LinkClick=StrLinkflag
+End Function

@@ -1,0 +1,2 @@
+Browser(":=").Page(":=").WebList("").Select "First Item"
+Browser(":=").Page(":=").WebList("").ExtendSelect "Second Item"

@@ -1,0 +1,1038 @@
+'General Header
+'#####################################################################################################################
+'Test Tool/Version		: Quick Test Professional 11
+'Test Tool Settings		: N.A.
+'Browser used			: N.A.
+'Application Automated		: N.A.
+'Test Case Automated		: N.A.
+'Script Name			: CRAFTLite Support library
+'Author				: Cognizant
+'Date Created			: 
+'Last Modified by		: Cognizant
+'Date Modified			: 
+'Comments			: 
+'#####################################################################################################################
+'Option Explicit	'Forcing Variable declarations
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_Initialize
+'Description     		: Function to do required initializations before running a test case
+'Input Parameters 		: None
+'Return Value    		: dtmIteration_StartTime
+'Author				: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_Initialize()
+  
+	'Set default value of Start Iteration to 1 to avoid unexpected errors
+    'Create Results folder with timestamp
+
+
+	Dim objQtpApp
+	Set objQtpApp = CreateObject("QuickTest.Application")
+	If objQtpApp.Test.Settings.Run.IterationMode <> "rngIterations" Then
+		objQtpApp.Test.Settings.Run.StartIteration = 1
+	End If
+
+
+
+	'Initialization activities that need to be done only for the first iteration
+	If Environment.Value("TestIteration") = CStr(objQtpApp.Test.Settings.Run.StartIteration) Then
+		'Declare required variables
+		Dim objFso, strRelativePath, strFilePath,a
+		Dim strDatatableName
+		Dim strTestDataSheet, strCheckPointSheet, strResultSheet, strReportedEventSheet
+		Dim strCurrentScenario, strCurrentTestCase, intIterationCount, intLastIteration
+		Dim strConnectionString, objConn, objTestData
+		Dim gstrTimeStamp,gobjFso,gobjTimeStampFolder,gobjExcelFolder,gobjHtmlFolder,gobjQtpFolder,gobjScreenshotsFolder
+		
+		'Store the relative path (for easy portability of scripts)
+		strCurrentScenario = CRAFTLite_GetScenario()
+		
+		Environment.Value("RelativePath") = CRAFTLite_GetRelativePath()
+		'
+		
+		strRelativePath = Environment.Value("RelativePath")
+
+
+
+		gstrTimeStamp = "Run" & "_" & Replace(Date(),"/","-") & "_" & Replace(Time(),":","-")
+		Set gobjFso = CreateObject("Scripting.FileSystemObject")
+		Set gobjTimeStampFolder = gobjFso.CreateFolder(strRelativePath & "\Results\" & gstrTimeStamp)
+		Set gobjExcelFolder = gobjFso.CreateFolder(gobjTimeStampFolder & "\Excel Results")
+		Set gobjHtmlFolder = gobjFso.CreateFolder(gobjTimeStampFolder & "\HTML Results")
+		Set gobjQtpFolder = gobjFso.CreateFolder(gobjTimeStampFolder & "\QTP Results")
+		Set gobjScreenshotsFolder = gobjFso.CreateFolder(gobjTimeStampFolder & "\Screenshots")
+		
+		'Initialise basic configuration settings from CRAFTLite.ini file
+		strTestDataSheet = CRAFTLite_GetConfig("TestDataSheet")
+		strReportedEventSheet = CRAFTLite_GetConfig("ReportedEventSheet")
+		strResultSheet = CRAFTLite_GetConfig("ResultSheet")
+		Environment.Value("ReportedEventSheet") = strReportedEventSheet
+		Environment.Value("ResultSheet") = strResultSheet
+		Environment.Value("OnError") = CRAFTLite_GetConfig("OnError")
+		Environment.Value("TakeScreenshotFailedStep") = CBool(CRAFTLite_GetConfig("TakeScreenshotFailedStep"))
+		Environment.Value("TakeScreenshotPassedStep") = CBool(CRAFTLite_GetConfig("TakeScreenshotPassedStep"))
+		Environment.Value("ResultPath") = Environment.Value("RelativePath") & "\Results"
+		
+		
+		'Setup appropriate parameters for the Current Test Case Execution
+		Environment.Value("CurrentScenario") = strCurrentScenario
+		strDatatableName = strCurrentScenario & ".xls"
+		
+		strCurrentTestCase = Environment.Value("TestName")
+		Environment.Value("TimeStamp") =gstrTimeStamp' Parameter("TimeStamp")
+		
+		'Verify if datatable exists for the given scenario
+		Set objFso = CreateObject("Scripting.FileSystemObject")
+		If Not objFso.FileExists(strRelativePath & "\Datatables\" & strDatatableName) Then
+			Reporter.ReportEvent micFail,"Error","Datatable not found for the specified Scenario!"
+			ExitTest
+		End If
+		
+		'Import any sheet into Global datasheet as a precursor to filling dummy data in the datasheet (to avoid column name not found error in QTP)
+		DataTable.ImportSheet strRelativePath & "\Datatables\" & strDatatableName, strReportedEventSheet, "Global"
+		
+		'Import Reported Events sheet
+		CRAFTLite_ImportSheet strRelativePath &"\Datatables\" & strDatatableName, strReportedEventSheet
+		
+		'Import previous Results Summary, if any
+		If objFso.FileExists(strRelativePath & "\Results\" & Environment.Value("TimeStamp") & "\Excel Results\Summary.xls") Then
+			CRAFTLite_ImportSheet strRelativePath &"\Results\" & Environment.Value("TimeStamp") & "\Excel Results\Summary.xls", strResultSheet
+		Else
+			CRAFTLite_ImportSheet strRelativePath &"\Datatables\" & strDatatableName, strResultSheet
+		End If
+		
+		'Open connection to datatable
+		strFilePath = strRelativePath & "\Datatables\" & strDatatableName
+		strConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + strFilePath + ";Extended Properties=""Excel 8.0;HDR=Yes;IMEX=2"""
+		Set objConn = CreateObject("ADODB.Connection")
+		objConn.Open strConnectionString
+		Set objTestData = CreateObject("ADODB.Recordset")
+		
+		'Get number of data iterations specified by the user in the datasheet
+		Set objTestData = objConn.Execute("SELECT count(*) from [" & strTestDataSheet & "$] where TC_ID='" & strCurrentTestCase & "'")
+		intIterationCount = objTestData(0)
+		objTestData.Close
+		objConn.Close
+		
+		'Set the LastIteration environment variable as appropriate (this will be used in CRAFTLite_WrapUp() function)
+		If objQtpApp.Test.Settings.Run.IterationMode = "rngAll" Then
+			intLastIteration = intIterationCount
+		ElseIf objQtpApp.Test.Settings.Run.IterationMode = "rngIterations" Then
+			intLastIteration = objQtpApp.Test.Settings.Run.EndIteration
+		Else
+			intLastIteration = 1
+		End If
+		Environment.Value("LastIteration") = intLastIteration
+		
+		'Fill datasheet with dummy data required for iterating as required
+		Do Until intIterationCount = 0
+			DataTable.Value("Iteration","Global") = intIterationCount
+			DataTable.GetSheet("Global").SetCurrentRow(DataTable.GetSheet("Global").GetRowCount + 1)
+			intIterationCount = intIterationCount - 1
+		Loop
+		DataTable.SetCurrentRow(1)
+		
+		'Initialize execution time and status of the test case
+		Environment.Value("TestCase_ExecutionTime") = 0
+		Environment.Value("OverallStatus") = ""
+		
+		'Release all objects
+		Set objFso = Nothing
+		Set objConn = Nothing
+		Set objTestData = Nothing
+	End If
+	
+	objQtpApp.Test.SaveAs strRelativePath&"\Test Scripts\"&strCurrentTestCase'modify
+	Set objQtpApp = Nothing
+    
+	'Return the start time of current iteration
+	CRAFTLite_Initialize = Now()
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_WrapUp
+'Description     		: Function to do required wrap-up work after running a test case
+'Input Parameters 		: None
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_WrapUp()
+	'Initialize Reported Events and Results summary sheet names
+	Dim strReportedEventSheet, strResultSheet
+		
+
+	strReportedEventSheet = Environment.Value("ReportedEventSheet")
+	strResultSheet = Environment.Value("ResultSheet")
+	
+	'Report the total execution time for the current iteration
+	Dim dtmIteration_StartTime, dtmIteration_EndTime, sngIteration_ExecutionTime
+	dtmIteration_StartTime = Environment.Value("Iteration_StartTime")
+	dtmIteration_EndTime = Now()
+	sngIteration_ExecutionTime = DateDiff("s", dtmIteration_StartTime, dtmIteration_EndTime)
+	sngIteration_ExecutionTime = Round(CSng(sngIteration_ExecutionTime)/60, 2)
+	DataTable.Value("Description", strReportedEventSheet) = "Execution Time (mins)"
+	DataTable.Value("Time", strReportedEventSheet) = sngIteration_ExecutionTime
+	Environment.Value("TestCase_ExecutionTime") = Environment.Value("TestCase_ExecutionTime") + sngIteration_ExecutionTime
+	
+	'Increment the current row for Reported Events sheet for every iteration
+	DataTable.GetSheet(strReportedEventSheet).SetCurrentRow(DataTable.GetSheet(strReportedEventSheet).GetRowCount + 2)
+	
+	'Wrap up activities that need to be done only for the last iteration
+	If Environment.Value("TestIteration") = CStr(Environment.Value("LastIteration")) Then
+		'Initialize required variables
+		Dim strProjectName, strCurrentTestCase, strDescription, strReportsTheme
+		strProjectName = CRAFTLite_GetConfig("ProjectName")	
+		'msgbox strProjectName
+		strReportsTheme = CRAFTLite_GetConfig("ReportsTheme")
+		strCurrentTestCase = Environment.Value("TestName")
+		strDescription = Parameter("Description")
+		
+		'Update overall result of the test case 
+		If (Environment.Value("OverallStatus") <> "Fail") Then
+			Environment.Value("OverallStatus") = "Pass"
+		End If
+		
+		'Export Results to Excel and HTML
+		CRAFTLite_ExportReportedEventsToExcel strCurrentTestCase, strReportedEventSheet
+		CRAFTLite_ExportReportedEventsToHtml strProjectName, strCurrentTestCase, strReportedEventSheet, strReportsTheme
+		CRAFTLite_UpdateResultSummary strCurrentTestCase, strDescription, Environment.Value("TestCase_ExecutionTime"), strResultSheet
+		CRAFTLite_ExportResultSummaryToExcel strResultSheet
+		CRAFTLite_ExportResultSummaryToHtml strProjectName, strResultSheet, strReportsTheme
+	
+
+	
+	End If
+
+	
+ 
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_GetRelativePath
+'Description     		: Function to return the framework folder relative path
+'Input Parameters 		: None
+'Return Value    		: strFrameworkRootFolder
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_GetRelativePath()
+	Dim objFso, strFrameworkRootFolder
+	Set objFso = CreateObject("Scripting.FileSystemObject")
+	strFrameworkRootFolder = objFso.GetParentFolderName(objFso.GetParentFolderName(Environment.Value("TestDir")))
+	Set objFso = Nothing
+	CRAFTLite_GetRelativePath = strFrameworkRootFolder
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_GetScenario
+'Description     		: Function to return the current Scenario
+'Input Parameters 		: None
+'Return Value    		: strScenarioFolderName
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_GetScenario()
+	Dim objFso, strScenarioFolder, arrSplitPath, strScenarioFolderName
+	Set objFso = CreateObject("Scripting.FileSystemObject")
+	strScenarioFolder = Environment.Value("TestDir")
+	
+	arrSplitPath = Split(strScenarioFolder,"\")
+	strScenarioFolderName = arrSplitPath(UBound(arrSplitPath)-2)
+	
+	CRAFTLite_GetScenario = strScenarioFolderName
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_ImportSheet
+'Description     		: Function to import specified Excel sheet into datatable
+'Input Parameters 		: strFilePath, strSheetName
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_ImportSheet(strFilePath, strSheetName)
+	Datatable.Addsheet strSheetName
+	Datatable.Importsheet strFilePath,strSheetName,strSheetName
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_GetData
+'Description     		: Function to import specified Excel sheet into datatable
+'Input Parameters 		: strFieldName
+'Return Value    		: strDataValue
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_GetData(strFieldName)
+	'Initialise required variables
+	Dim strReferenceIdentifier, strTestDataSheet, strCurrentTestCase, intCurrentIteration, strDatatableName, strFilePath
+	Dim strConnectionString, strSql, objConn, objTestData, strDataValue, strFirstChar
+	strReferenceIdentifier = CRAFTLite_GetConfig("DataReferenceIdentifier")
+	strTestDataSheet = CRAFTLite_GetConfig("TestDataSheet")
+	strCurrentTestCase = Environment.Value("TestName")
+	intCurrentIteration = Environment.Value("TestIteration")
+	strDatatableName = Environment.Value("CurrentScenario") & ".xls"	
+	
+	strFilePath = Environment.Value("RelativePath") & "\Datatables\" & strDatatableName
+	
+	strConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + strFilePath + ";Extended Properties=""Excel 8.0;HDR=Yes;IMEX=2"""
+	
+	Set objConn = CreateObject("ADODB.Connection")
+	objConn.Open strConnectionString
+	Set objTestData = CreateObject("ADODB.Recordset")
+	objTestData.CursorLocation = 3	
+	strSql = "SELECT " & strFieldName & " from [" & strTestDataSheet & "$] where TC_ID='" & strCurrentTestCase & "' and Iteration = " & intCurrentIteration
+	objTestData.Open strSql, objConn
+	If objTestData.RecordCount = 0 Then
+		CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "Error", "No test data found for this test case iteration! All subsequent iterations aborted...", "Fail"
+		CRAFTLite_StopExecution()
+	End If
+	strDataValue = Trim(objTestData(0).Value)
+	strFirstChar = Left(strDataValue, 1)
+	
+	If strFirstChar = strReferenceIdentifier Then
+		objConn.Close
+		strDataValue = Split(strDataValue, strReferenceIdentifier)(1)
+		strFilePath = Environment.Value("RelativePath") & "\Datatables\Common Testdata.xls"
+		strConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + strFilePath + ";Extended Properties=""Excel 8.0;HDR=Yes;IMEX=2"""
+		objConn.Open strConnectionString
+		strSql = "SELECT " & strFieldName & " from [Common Testdata$] where TD_ID='" & strDataValue & "'"
+		objTestData.Open strSql,objConn
+		If objTestData.RecordCount = 0 Then
+			CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "Error", "Missing data reference! Aborting current iteration...", "Fail"
+			CRAFTLite_ExitIteration()
+		End If
+		strDataValue = Trim(objTestData(0).Value)
+	End If
+	
+	'Release all objects
+	objTestData.Close
+	objConn.Close
+	Set objConn = Nothing
+	Set objTestData = Nothing
+	
+	'Avoid returning Null value
+	If IsNull(strDataValue) Then
+		strDataValue = ""
+	End If
+	CRAFTLite_GetData = strDataValue
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name   	 	: CRAFTLite_PutData
+'Description     		: Function to output intermediate data (output values)  into the Test data sheet
+'Input Parameters		: strFieldName, strDataValue
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_PutData(strFieldName, strDataValue)
+	'Initialize required variables
+	Dim strTestDataSheet, strCurrentTestCase, intCurrentIteration, strDatatableName, strFilePath, strConnectionString, objConn, strSql
+	strTestDataSheet = CRAFTLite_GetConfig("TestDataSheet")
+	strCurrentTestCase = Environment.Value("TestName")
+	intCurrentIteration = Environment.Value("TestIteration")
+	strDatatableName = Environment.Value("CurrentScenario") & ".xls"
+	strFilePath = Environment.Value("RelativePath") & "\Datatables\" & strDatatableName
+	strConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + strFilePath + ";Extended Properties=""Excel 8.0;HDR=Yes;IMEX=2"""
+	
+	'Write the output value into the test data sheet
+	Set objConn = CreateObject("ADODB.Connection")
+	objConn.Open strConnectionString
+	strSql = "UPDATE [" & strTestDataSheet & "$] SET " & strFieldName & "=" &"'"& strDataValue &"'" & " where TC_ID='" & strCurrentTestCase & "' and Iteration = " & intCurrentIteration
+	strSql = "UPDATE [" & strTestDataSheet & "$] SET " & strFieldName & "=" &"'"& strDataValue &"'" & " where TC_ID='" & strCurrentTestCase & "' and Iteration = " & intCurrentIteration
+	objConn.Execute strSql
+	objConn.Close
+	Set objConn = Nothing
+	
+	'Report the output value to the results
+	CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "Output Value", "Output value '" & strDataValue & "' written into the '" & strFieldName & "' column", "Done"
+End Function
+
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name   	 	: CRAFT_PutData
+'Description     		: Function to output intermediate data (output values)  into the Test data sheet
+'Input Parameters		: strFieldName, strDataValue,
+											'strTestCaseName - Name of the test case where data has to put
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFT_PutData(strFieldName, strDataValue,strTestCaseName)
+	'Initialize required variables
+	Dim strTestDataSheet, strCurrentTestCase, intCurrentIteration, strDatatableName, strFilePath, strConnectionString, objConn, strSql
+	strTestDataSheet = CRAFTLite_GetConfig("TestDataSheet")	
+	intCurrentIteration = Environment.Value("TestIteration")
+	strDatatableName = Environment.Value("CurrentScenario") & ".xls"
+	strFilePath = Environment.Value("RelativePath") & "\Datatables\" & strDatatableName
+	strConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + strFilePath + ";Extended Properties=""Excel 8.0;HDR=Yes;IMEX=2"""
+	
+	'Write the output value into the test data sheet
+	Set objConn = CreateObject("ADODB.Connection")
+	objConn.Open strConnectionString
+	strSql = "UPDATE [" & strTestDataSheet & "$] SET " & strFieldName & "=" &"'"& strDataValue &"'" & " where TC_ID='" & strTestCaseName & "' and Iteration = " & intCurrentIteration
+	objConn.Execute strSql
+	objConn.Close
+	Set objConn = Nothing
+	
+	'Report the output value to the results
+	CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "Output Value", "Output value '" & strDataValue & "' written into the '" & strFieldName & "' column", "Done"
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name   	 	: CRAFTLite_GetExpectedResult
+'Description     		: Function to return the expected result data (from the Parameterized Checkpoints sheet) corresponding to the field name passed
+'Input Parameters		: strFieldName
+'Return Value    		: strDataValue
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_GetExpectedResult(strFieldName)
+	'Initialise required variables
+	Dim strReferenceIdentifier, strCheckPointSheet, strCurrentTestCase, intCurrentIteration, strDatatableName, strFilePath
+	Dim strConnectionString, strSql, objConn, objTestData, strDataValue, strFirstChar
+	strReferenceIdentifier = CRAFTLite_GetConfig("DataReferenceIdentifier")
+	strCheckPointSheet = CRAFTLite_GetConfig("CheckpointSheet")
+	strCurrentTestCase = Environment.Value("TestName")
+	intCurrentIteration = Environment.Value("TestIteration")
+	strDatatableName = Environment.Value("CurrentScenario") & ".xls"
+	strFilePath = Environment.Value("RelativePath") & "\Datatables\" & strDatatableName
+	strConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + strFilePath + ";Extended Properties=""Excel 8.0;HDR=Yes;IMEX=2"""
+	
+	Set objConn = CreateObject("ADODB.Connection")
+	objConn.Open strConnectionString
+	Set objTestData = CreateObject("ADODB.Recordset")
+	objTestData.CursorLocation = 3	
+	strSql = "SELECT " & strFieldName & " from [" & strCheckPointSheet & "$] where TC_ID='" & strCurrentTestCase & "' and Iteration = " & intCurrentIteration
+	objTestData.Open strSql, objConn
+	
+	If objTestData.RecordCount = 0 Then
+		CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "Error", "No expected result data found for this test case iteration! All subsequent iterations aborted...", "Fail"
+		CRAFTLite_StopExecution()
+	End If
+	strDataValue = Trim(objTestData(0).Value)
+	
+	'Release all objects
+	objTestData.Close
+	objConn.Close
+	Set objConn = Nothing
+	Set objTestData = Nothing
+	
+	'Avoid returning Null value
+	If IsNull(strDataValue) Then
+		strDataValue = ""
+	End If
+	CRAFTLite_GetExpectedResult = strDataValue
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_GetConfig
+'Description     		: Function to get the configuration data from the CRAFTLite.ini configuration file
+'Input Parameters 		: strkey
+'Return Value    		: Corresponding value from CRAFTLite.ini
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_GetConfig(strkey)
+	Dim objFso, objMyFile,strRelativePath
+	Dim strLine, arrLine, strValue, strConfigFilePath
+	Set objFso = CreateObject ("Scripting.FileSystemObject")
+	strRelativePath=objFso.GetParentFolderName(( Environment.Value("RelativePath"))) 'added 1 here
+	strConfigFilePath =strRelativePath&"\Craft_Framework\CRAFTLite.ini"	
+	Set objMyFile = objFso.OpenTextFile(strConfigFilePath,1)
+	Do Until objMyFile.AtEndOfStream
+		strLine = objMyFile.ReadLine
+		If strLine <> "" Then
+			arrLine = Split(strLine,"=")
+			If arrLine(0) = strKey Then
+				strValue = arrLine(1)
+				Exit Do
+			End If
+		End If
+	Loop
+	
+	objMyFile.close()
+	Set objMyFile = Nothing
+	Set objFso = Nothing
+	CRAFTLite_GetConfig = CStr(strValue)
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_ReportEvent
+'Description     		: Function to report any event related to the current test case
+'Input Parameters 		: strReportedEventSheet, strStepName, strDescription, strStatus
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_ReportEvent(strReportedEventSheet, strStepName, strDescription, strStatus)
+	'Report the event in QTP results
+	Dim intStatus
+	Select Case strStatus
+		Case "Pass"
+			intStatus = 0
+		Case "Fail"
+			intStatus = 1
+		Case "Done"
+			intStatus = 2
+		Case "Warning"
+			intStatus = 3
+	End Select
+	Reporter.ReportEvent intStatus,strStepName,strDescription
+	
+	'Report the event in Excel/HTML results
+	Dim strCurrentTime
+	strCurrentTime = Time()
+	DataTable.Value("Iteration",strReportedEventSheet) = Environment.Value("TestIteration")
+	DataTable.Value("Step_Name",strReportedEventSheet) = strStepName
+	DataTable.Value("Description",strReportedEventSheet) = strDescription
+	DataTable.Value("Status",strReportedEventSheet) = strStatus
+	DataTable.Value("Time",strReportedEventSheet) = strCurrentTime
+	
+	Dim objFso, strScreenshotPath
+	Set objFso = CreateObject("Scripting.FileSystemObject")
+	strScreenshotPath = Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp") & "\Screenshots\" & Environment.Value("TestName") & "_Iteration" & Environment.Value("TestIteration") & "_" & Replace(strCurrentTime,":","-") &".png"
+	
+	'Take screenshot if its a failed step or a warning (only if the user has enabled this setting, and another screenshot was not taken already in the very same second)
+	If((strStatus = "Fail" Or strStatus = "Warning") And Environment.Value("TakeScreenshotFailedStep")) And objFso.FileExists(strScreenshotPath) = False Then
+		Desktop.CaptureBitmap(strScreenshotPath)
+	End If
+	
+	'Take screenshot if its a passed step (only if the user has enabled this setting, and another screenshot was not taken already in the very same second)
+	If((strStatus = "Pass") And Environment.Value("TakeScreenshotPassedStep")) And objFso.FileExists(strScreenshotPath) = False Then
+		Desktop.CaptureBitmap(strScreenshotPath)
+	End If
+	
+	Set objFso = Nothing
+	
+	'Set next row in the Reported Events sheet
+	Dim intCurrentRow
+	intCurrentRow = DataTable.GetSheet(strReportedEventSheet).GetCurrentRow()
+	DataTable.GetSheet(strReportedEventSheet).SetCurrentRow(intCurrentRow + 1)
+	
+	'Update the overall status of the test case
+	If(Environment.Value("OverallStatus") <> "Fail") Then
+		If(strStatus = "Fail") Then
+			Environment.Value("OverallStatus") = "Fail"
+		End If
+	End If
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_ExitIteration
+'Description     		: Function to wrap up the current iteration and proceed to the next iteration
+'Input Parameters 		: None
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			:
+'#####################################################################################################################
+Function CRAFTLite_ExitIteration()
+	CRAFTLite_WrapUp()
+	ExitTestiteration
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_StopExecution
+'Description     		: Function to wrap up the current iteration and stop the current script execution
+'Input Parameters 		: None
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_StopExecution()
+	CRAFTLite_WrapUp()
+	ExitTest
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_ExportReportedEventsToExcel
+'Description     		: Function to export the reported events in the test case to Excel
+'Input Parameters 		: strCurrentTestCase, strReportedEventSheet
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_ExportReportedEventsToExcel(strCurrentTestCase, strReportedEventSheet)
+	DataTable.ExportSheet Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp") & "\Excel Results\" & strCurrentTestCase & ".xls",strReportedEventSheet
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_SetReportsTheme
+'Description     		: Function to set the colors of the HTML report based on the theme specified by the user
+'Input Parameters 		: strReportsTheme, (ByRef) strHeadingColor, (ByRef) strSettingColor, (ByRef) strBodyColor
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			:
+'#####################################################################################################################
+Function CRAFTLite_SetReportsTheme(strReportsTheme, ByRef strHeadingColor, ByRef strSettingColor, ByRef strBodyColor)
+	'Themes can be easily extended by expanding this function
+	Select Case UCase(strReportsTheme)
+		Case "AUTUMN"
+			strHeadingColor="#7E5D56"
+			strSettingColor="#EDE9CE"
+			strBodyColor="#F6F3E4"
+		Case "OLIVE"
+			strHeadingColor="#686145"
+			strSettingColor="#EDE9CE"
+			strBodyColor="#E8DEBA"
+		Case "CLASSIC"
+			strHeadingColor="#687C7D"
+			strSettingColor="#C6D0D1"
+			strBodyColor="#EDEEF0"
+		Case "RETRO"
+			strHeadingColor="#CE824E"
+			strSettingColor="#F3DEB1"
+			strBodyColor="#F8F1E7"
+		Case "MYSTIC"
+			strHeadingColor="#4D7C7B"
+			strSettingColor="#FFFFAE"
+			strBodyColor="#FAFAC5"	
+		Case "SERENE"
+			strHeadingColor="#7B597A"
+			strSettingColor="#ADE0FF"
+			strBodyColor="#C5AFC6"
+		Case "REBEL"
+			strHeadingColor="#953735"
+			strSettingColor="#A6A6A6"
+			strBodyColor="#D9D9D9"
+		Case Else
+			strHeadingColor="#12579D"
+			strSettingColor="#BCE1FB"
+			strBodyColor="#FFFFFF"	
+	End Select
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_ExportReportedEventsToHtml
+'Description     		: Function to export the reported events in the test case to HTML
+'Input Parameters 		: strProjectName, strCurrentTestCase, strReportedEventSheet, strReportsTheme
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			:
+'#####################################################################################################################
+Function CRAFTLite_ExportReportedEventsToHtml(strProjectName, strCurrentTestCase, strReportedEventSheet, strReportsTheme)	
+	Dim objFso, objMyFile
+	Dim intPassCounter, intFailCounter, intVerificationNo
+	Dim strIteration, strStepName, strDescription, strStatus, strTime, strExecutionTime
+	Dim intRowcount, intRowCounter, strTempStatus
+	Dim strPath, strScreenShotPath, strScreenShotName
+	Dim arrSplitTimeStamp, strTimeStampDate, strTimeStampTime
+	Dim strOnError, strIterationMode, intStartIteration, intEndIteration
+	Dim strHeadColor, strSettColor, strContentBGColor
+	
+	arrSplitTimeStamp = Split(Environment.Value("TimeStamp"),"_")
+	strTimeStampDate = Replace(arrSplitTimeStamp(1),"-","/")
+	strTimeStampTime = Replace(arrSplitTimeStamp(2),"-",":")
+	
+	strPath = Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp") & "\HTML Results\" & strCurrentTestCase & ".html"
+	strScreenShotPath = "..\Screenshots\"
+	intPassCounter = 0
+	intFailCounter = 0
+	intVerificationNo = 0
+	
+	strOnError = Environment.Value("OnError")
+	
+	Dim objQtpApp
+	Set objQtpApp = CreateObject("QuickTest.Application")
+	Select Case objQtpApp.Test.Settings.Run.IterationMode
+		Case "oneIteration"
+			strIterationMode = "Run one iteration only"
+		Case "rngAll"
+			strIterationMode = "Run all iterations"
+		Case "rngIterations"
+			strIterationMode = "Run from <i>Start Iteration</i> to <i>End Iteration</i>"
+	End Select
+	intStartIteration = objQtpApp.Test.Settings.Run.StartIteration
+	intEndIteration = objQtpApp.Test.Settings.Run.EndIteration
+	
+	strHeadColor = "#12579D"
+	strSettColor = "#BCE1FB"
+	strContentBGColor = "#FFFFFF"
+	
+	CRAFTLite_SetReportsTheme strReportsTheme,strHeadColor,strSettColor,strContentBGColor
+	
+	'Create a HTML file
+	Set objFso = CreateObject("Scripting.FileSystemObject")
+	Set objMyFile = objFso.CreateTextFile(strPath, True)
+	objMyFile.Close
+	
+	'Open the HTML file for writing
+	Set objMyFile = objFso.OpenTextFile(strPath,8)
+	
+	'Create the Report header
+	objMyFile.Writeline("<html>")
+		objMyFile.Writeline("<head>")
+			objMyFile.Writeline("<meta http-equiv=" & "Content-Language" & "content=" & "en-us>")
+			objMyFile.Writeline("<meta http-equiv="& "Content-Type" & "content=" & "text/html; charset=windows-1252" & ">")
+			objMyFile.Writeline("<title> Test Case Automation Execution Results</title>")
+			objMyFile.Writeline("<script>")
+				objMyFile.Writeline("top.window.moveTo(0, 0);")
+				objMyFile.Writeline("window.resizeTo(screen.availwidth, screen.availheight);")
+			objMyFile.Writeline("</script>")
+		objMyFile.Writeline("</head>")
+		
+		objMyFile.Writeline("<body bgcolor = #FFFFFF>")
+			objMyFile.Writeline("<blockquote>")
+				objMyFile.Writeline("<p align = center><table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					objMyFile.Writeline("<tr>")
+						objMyFile.Writeline("<td COLSPAN = 6 bgcolor ="& strHeadColor & ">")
+							objMyFile.Writeline("<p align=center><font color=#FFFFFF size=4 face= "& chr(34)&"Copperplate Gothic Bold"&chr(34) & ">&nbsp;" & strProjectName & " - " & strCurrentTestCase & " Automation Execution Results" & "</font><font face= " & chr(34)&"Copperplate Gothic Bold"&chr(34) & "></font> </p>")
+						objMyFile.Writeline("</td>")
+					objMyFile.Writeline("</tr>")
+					
+					objMyFile.Writeline("<tr>")
+						objMyFile.Writeline("<td COLSPAN = 6 bgcolor ="& strHeadColor & ">")
+							objMyFile.Writeline("<p align=center><b><font color=#FFFFFF size=2 face= Verdana>"& "&nbsp;"& "DATE: " &  strTimeStampDate & " " & strTimeStampTime)
+						objMyFile.Writeline("</td>")
+					objMyFile.Writeline("</tr>")
+					
+					objMyFile.Writeline("<table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					objMyFile.Writeline("<tr bgcolor = "& strSettColor & ">")
+						objMyFile.Writeline("<td colspan =2>")
+							objMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & " size=2 face= Verdana>"& "&nbsp;"& "OnError: " & strOnError)
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td colspan =2>")
+							objMyFile.Writeline("<p align=right><b><font color=" & strHeadColor & " size=2 face= Verdana>"& "&nbsp;"& "IterationMode: " & strIterationMode )
+						objMyFile.Writeline("</td>")
+					objMyFile.Writeline("</tr>")
+					
+					If objQtpApp.Test.Settings.Run.IterationMode = "rngIterations" Then
+						objMyFile.Writeline("<tr bgcolor = "& strSettColor & ">")
+							objMyFile.Writeline("<td COLSPAN = 4>")
+								Dim strESpace, strSSpace
+								strESpace="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+								strSSpace="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+								objMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & " size=2 face= Verdana>"& strSSpace & "Start Iteration: " & intStartIteration & strESpace & "End Iteration: " & intEndIteration)
+							objMyFile.Writeline("</td>")
+						objMyFile.Writeline("</tr>")
+					End If
+				objMyFile.Writeline("<table>")
+				
+				objMyFile.Writeline("<p align = center><table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					objMyFile.Writeline("<tr bgcolor=" & strHeadColor & ">")
+						objMyFile.Writeline("<td width=" & "400")
+							objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Iteration</b>")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td width=" & "400")
+							objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Step Name</b>")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td width=" & "400")
+							objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Description</b>")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td width=" & "400")
+							objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Status</b>")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td width=" & "400")
+							objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Time</b>")
+						objMyFile.Writeline("</td>")
+					objMyFile.Writeline("</tr>")
+				'End of Header
+				
+				'Add Data to the Test Case Log HTML file from the excel file
+					intRowcount = Datatable.GetSheet(strReportedEventSheet).GetRowCount
+					For intRowCounter = 1 To intRowCount
+						Datatable.GetSheet(strReportedEventSheet).SetCurrentRow(intRowCounter)
+						strIteration = Datatable("Iteration",strReportedEventSheet)
+						strStepName = Datatable("Step_Name",strReportedEventSheet)
+						strDescription = Datatable("Description",strReportedEventSheet)
+						strStatus = Datatable("Status",strReportedEventSheet)
+						strTime = Datatable("Time",strReportedEventSheet)
+						
+						If strIteration = "" Then
+							objMyFile.Writeline("<tr bgcolor =" & strContentBGColor & ">")
+								objMyFile.Writeline("<td COLSPAN = 6>")
+									objMyFile.Writeline("<p align=center><b><font size=2 face= Verdana>"& "&nbsp;"& strDescription & ":&nbsp;&nbsp;" &  strTime  & "&nbsp")
+								objMyFile.Writeline("</td>")
+							objMyFile.Writeline("</tr>")
+							intRowCounter = intRowCounter + 1
+						Else
+							objMyFile.Writeline("<tr bgcolor =" & strContentBGColor & ">")
+								objMyFile.Writeline("<td width=" & "400>")
+									objMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strIteration)
+								objMyFile.Writeline("</td>")
+								
+								objMyFile.Writeline("<td width=" & "400>")
+									strScreenShotName = Environment.Value("TestName") & "_Iteration" & strIteration & "_" & Replace(strTime,":","-")
+									If(UCase(strStatus) = "FAIL" And Environment.Value("TakeScreenshotFailedStep")) Then
+										objMyFile.Writeline("<p align=center><a href='" & strScreenShotPath & strScreenShotName & ".png" & "'><b><font face=" & "verdana" & "size=" & "2" & ">" & strStepName & "</font></b></a></p>")
+									ElseIf(UCase(strStatus)="PASS" And Environment.Value("TakeScreenshotPassedStep")) Then
+										objMyFile.Writeline("<p align=center><a href='" & strScreenShotPath & strScreenShotName & ".png" & "'><b><font face=" & "verdana" & "size=" & "2" & ">" & strStepName & "</font></b></a></p>")
+									Else
+										objMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strStepName)
+									End If
+								objMyFile.Writeline("</td>")
+								
+								objMyFile.Writeline("<td width=" & "400>")
+									objMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strDescription)
+								objMyFile.Writeline("</td>")
+								
+								objMyFile.Writeline("<td width=" & "400>")
+									If UCase(strStatus) = "PASS" Then
+										objMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#008000" & ">" & strStatus & "</font></b>")
+										intPassCounter = intPassCounter + 1	
+										intVerificationNo = intVerificationNo + 1
+									ElseIf UCase(strStatus) = "FAIL" Then
+										objMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#FF0000" & ">" & strStatus & "</font></b>")
+										intFailCounter = intFailCounter + 1
+										intVerificationNo = intVerificationNo + 1
+									Else
+										objMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#8A4117" & ">" & strStatus & "</font></b>")
+									End If
+								objMyFile.Writeline("</td>")
+								
+								objMyFile.Writeline("<td width=" & "400>")
+									objMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strTime)
+								objMyFile.Writeline("</td>")
+							objMyFile.Writeline("</tr>")
+						End If
+					Next
+				objMyFile.Writeline("</table>")
+				
+				objMyFile.Writeline("<table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					objMyFile.Writeline("<tr bgcolor =" & strSettColor & ">")
+						objMyFile.Writeline("<td colspan =1>")
+							objMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & "  size=2 face= Verdana>"& "&nbsp;"& "No. Of Verification Points :&nbsp;&nbsp;" &  intVerificationNo & "&nbsp;")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td colspan =1>")
+							objMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & "  size=2 face= Verdana>"& "&nbsp;"& "Passed :&nbsp;&nbsp;" &  intPassCounter & "&nbsp;")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td colspan =1>")
+							objMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & "  size=2 face= Verdana>"& "&nbsp;"& "Failed :&nbsp;&nbsp;" &  intFailCounter & "&nbsp;")
+						objMyFile.Writeline("</td>")
+					objMyFile.Writeline("</tr>")
+				objMyFile.Writeline("</table>")
+			objMyFile.Writeline("</blockquote>")
+		objMyFile.Writeline("</body>")
+	objMyFile.Writeline("</html>")
+	objMyFile.Close
+
+	Set objMyFile = Nothing
+	Set objFso = Nothing
+	Set objQtpApp = Nothing
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_UpdateResultSummary
+'Description     		: Function to update the Results Summary with the current Test Case Iteration status
+'Input Parameters 		: strCurrentTestCase, strDescription, sngExecutionTime, strResultSheet
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			:
+'#####################################################################################################################
+Function CRAFTLite_UpdateResultSummary(strCurrentTestCase, strDescription, sngExecutionTime, strResultSheet)
+	DataTable.GetSheet(strResultSheet).SetCurrentRow(DataTable.GetSheet(strResultSheet).GetRowCount+1)	
+	DataTable.Value("TC_ID",strResultSheet) = strCurrentTestCase
+	DataTable.Value("Description",strResultSheet) = strDescription
+	DataTable.Value("Execution_Time_Minutes",strResultSheet) = sngExecutionTime
+	DataTable.Value("Status",strResultSheet) = Environment.Value("OverallStatus")
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_ExportResultSummaryToExcel
+'Description     		: Function to exported the Results Summary sheet to Excel
+'Input Parameters 		: strResultSheet
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_ExportResultSummaryToExcel(strResultSheet)
+	DataTable.ExportSheet Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp") & "\Excel Results\Summary.xls",strResultSheet
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_ExportResultSummaryToHtml
+'Description     		: Function to exported the Results Summary sheet to HTML
+'Input Parameters 		: strProjectName, strResultSheet, strReportsTheme
+'Return Value    		: None
+'Author					: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_ExportResultSummaryToHtml(strProjectName, strResultSheet, strReportsTheme)
+	Dim objFso, objMyFile
+	Dim intPassCounter, intFailCounter, intNoRunCounter
+	Dim intRowCount, intRowCounter
+	Dim strTC_ID, strDescription, strExecutionTime, strStatus
+	Dim strLnkFileName, strPath
+	Dim intTotalExecTime, strExecTimeTemp, strUnit
+	Dim arrSplitTimeStamp, strTimeStampDate, strTimeStampTime
+	Dim strHeadColor, strSettColor, strContentBGColor
+	
+	arrSplitTimeStamp = Split(Environment.Value("TimeStamp"),"_")
+	strTimeStampDate = Replace(arrSplitTimeStamp(1),"-","/")
+	strTimeStampTime = Replace(arrSplitTimeStamp(2),"-",":")
+	intPassCounter = 0
+	intFailCounter = 0
+	intNoRunCounter = 0
+	intTotalExecTime = 0
+	strPath = Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp") & "\HTML Results\Summary.html"
+	
+	'Default settings for theme
+	strHeadColor = "#12579D"
+	strSettColor = "#BCE1FB"
+	strContentBGColor = "#FFFFFF"
+	
+	CRAFTLite_SetReportsTheme strReportsTheme, strHeadColor, strSettColor, strContentBGColor
+	
+	'Count the total Execution time
+	intRowCount = Datatable.GetSheet(strResultSheet).GetRowCount
+	For intRowCounter = 1 To intRowCount
+		Datatable.GetSheet(strResultSheet).SetCurrentRow(intRowCounter)
+		strExecTimeTemp = Datatable("Execution_Time_Minutes",strResultSheet)
+		intTotalExecTime = intTotalExecTime+CSng(strExecTimeTemp)
+	Next
+	
+	If intTotalExecTime = 1 Then
+		strUnit = "minute"
+	Else
+		strUnit = "minutes"
+	End If
+	
+	'Create a HTML file
+	Set objFso = CreateObject("Scripting.FileSystemObject")
+	Set objMyFile = objFso.CreateTextFile(strPath, True)
+	objMyFile.Close
+	
+	'Open the HTML file for writing
+	Set objMyFile = objFso.OpenTextFile(strPath,8)
+	
+	'Create the Report header
+	objMyFile.Writeline("<html>")
+		objMyFile.Writeline("<head>")
+			objMyFile.Writeline("<meta http-equiv=" & "Content-Language" & "content=" & "en-us>")
+			objMyFile.Writeline("<meta http-equiv="& "Content-Type" & "content=" & "text/html; charset=windows-1252" & ">")
+			objMyFile.Writeline("<title> Automation Execution Results</title>")
+		objMyFile.Writeline("</head>")
+		
+		objMyFile.Writeline("<body bgcolor = #FFFFFF>")
+			objMyFile.Writeline("<blockquote>")
+				objMyFile.Writeline("<p align = center><table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+				
+				objMyFile.Writeline("<tr>")
+					objMyFile.Writeline("<td COLSPAN = 6 bgcolor =" & strHeadColor &">")
+						objMyFile.Writeline("<p align=center><font color=#FFFFFF size=4 face= "& chr(34)&"Copperplate Gothic Bold"&chr(34) & ">&nbsp;Automation Execution Results - " & strProjectName  & "</font><font face= " & chr(34)&"Copperplate Gothic Bold"&chr(34) & "></font> </p>")
+					objMyFile.Writeline("</td>")
+				objMyFile.Writeline("</tr>")
+				
+				objMyFile.Writeline("<tr>")
+					objMyFile.Writeline("<td COLSPAN = 2 bgcolor =" & strSettColor &">")
+						objMyFile.Writeline("<p align=center><font color=" & strHeadColor &  "size=1 face= Verdana>" & "&nbsp;" & "Date: " & strTimeStampDate & " " & strTimeStampTime & "</font><font face= " & chr(34)&"Copperplate Gothic Bold"&chr(34) & "></font> </p>")
+					objMyFile.Writeline("</td>")
+					
+					objMyFile.Writeline("<td COLSPAN = 4 bgcolor = " & strSettColor &">")
+						objMyFile.Writeline("<p align=center><font color=" & strHeadColor &  "size=1 face= Verdana>" & "&nbsp;" & "Total Execution Time: " & intTotalExecTime & " " & strUnit  & "</font> </p>")
+					objMyFile.Writeline("</td>")
+				objMyFile.Writeline("</tr>")
+				
+				objMyFile.Writeline("<tr bgcolor=" & strHeadColor &">")
+					objMyFile.Writeline("<td width=" & "400")
+						objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Test Case ID</b>")
+					objMyFile.Writeline("</td>")
+					
+					objMyFile.Writeline("<td width=" & "400")
+						objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Description</b>")
+					objMyFile.Writeline("</td>")
+					
+					objMyFile.Writeline("<td width=" & "400")
+						objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Execution Time (Minutes)</b>")
+					objMyFile.Writeline("</td>")
+					
+					objMyFile.Writeline("<td width=" & "400")
+						objMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Status</b>")
+					objMyFile.Writeline("</td>")
+				objMyFile.Writeline("</tr>")
+				'End of Header
+				
+				'Add the data from the Summary file to the HTML file
+				intRowCount = Datatable.GetSheet(strResultSheet).GetRowCount
+				For intRowCounter=1 To intRowCount
+					Datatable.GetSheet(strResultSheet).SetCurrentRow(intRowCounter)	
+					strTC_ID=Datatable("TC_ID",strResultSheet)
+					strDescription=Datatable("Description",strResultSheet)
+					strExecutionTime=Datatable("Execution_Time_Minutes",strResultSheet)
+					strStatus=Datatable("Status",strResultSheet)
+					strLnkFileName=strTC_ID
+					
+					objMyFile.Writeline("<tr bgcolor = " & strContentBGColor & ">")	
+						objMyFile.Writeline("<td width=" & "400>")
+							objMyFile.Writeline("<p align=center><a href='" & strLnkFileName & ".html" & "'" & "target=" & "about_blank" & "><b><font face=" & "verdana" & "size=" & "2" & ">" & strTC_ID & "</font></b></a></p>")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td width=" & "400>")
+							objMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strDescription)
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td width=" & "400>")
+							objMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strExecutionTime)
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td width=" & "400>")
+							If UCase(strStatus)="PASS" Then
+								objMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#008000" & ">" & strStatus & "</font></b>")
+								intPassCounter=intPassCounter+1
+							ElseIf UCase(strStatus)="FAIL" Then
+								objMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#FF0000" & ">" & strStatus & "</font></b>")
+								intFailCounter=intFailCounter+1
+							Else
+								objMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#8A4117" & ">" & strStatus & "</font></b>")
+								intNoRunCounter=intNoRunCounter+1
+							End If
+						objMyFile.Writeline("</td>")
+					objMyFile.Writeline("</tr>")
+				Next
+				objMyFile.Writeline("</table>")
+				
+				objMyFile.Writeline("<table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					objMyFile.Writeline("<tr bgcolor =" & strSettColor &">")
+						objMyFile.Writeline("<td colspan =1>")
+							objMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & " size=2 face= Verdana>"& "&nbsp;"& "Passed :&nbsp;&nbsp;" &  intPassCounter & "&nbsp;")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td colspan =1>")
+							objMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & " size=2 face= Verdana>"& "&nbsp;"& "Failed :&nbsp;&nbsp;" &  intFailCounter & "&nbsp;")
+						objMyFile.Writeline("</td>")
+						
+						objMyFile.Writeline("<td colspan =1>")
+							objMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & " size=2 face= Verdana>"& "&nbsp;"& "InComplete :&nbsp;&nbsp;" &  intNoRunCounter & "&nbsp;")
+						objMyFile.Writeline("</td>")
+					objMyFile.Writeline("</tr>")
+				objMyFile.Writeline("</table>")
+			objMyFile.Writeline("</blockquote>")
+		objMyFile.Writeline("</body>")
+	objMyFile.Writeline("</html>")
+	objMyFile.Close
+	
+	Set objMyFile = Nothing
+	Set objFso = Nothing
+End Function
+
+'#####################################################################################################################
+

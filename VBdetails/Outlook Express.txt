@@ -1,0 +1,98 @@
+Public Contents
+
+Set olapp = createobject("outlook.application")
+
+set inbox = olapp.getnamespace("mapi").folders 
+cnt=0
+for each fold in inbox 
+    If fold.name = "Personal Folders" Then
+		cnt=cnt+1
+	set colfolders = fold.folders
+	cnt1=0
+        For each objfolder in colfolders
+			  If objfolder.name="Inbox" then
+				  cnt1=cnt1+1
+				  set colfolders = objfolder.folders
+				  set col = objfolder.items
+
+	   cnt2=0 
+				  For each mail in col
+					subject1=mail.subject
+					SentOn=mail.senton
+					subject=left(subject1,20)
+		   
+						 If  mail.unread then              
+								If subject="FSSTech:SD: MAPS 4.0" then
+									systemutil.Run "c:\windows\system32\wscript.exe", "D:\recovery.vbs"
+										If mail.body <>empty Then
+											Contents=mail.body
+											mail.unread=false
+											cnt2=cnt2+1 
+										Exit for
+										Else
+										Reporter.ReportEvent micFail, "Body of this Mail is Empty", "Fail" 
+										End If
+									End if 
+						End If
+					Next
+				End If
+				If cnt1=1 Then
+					Exit for
+				End If
+		Next
+	End If
+	 If cnt=1 Then
+		 Exit For
+	 End If
+Next 
+
+	If  cnt2=0 Then
+		Reporter.ReportEvent micFail, "No Mail Related to Subject has been Received", "Fail"
+	Elseif cnt2=1 Then
+		destinationpath="\\10.44.88.29\Harish\MAPS40\"
+					
+					split1=split(Contents,"\\",-1)
+					split2=split(split1(2),vbCrLf,-1)
+					originalpath="\\"&trim(split2(0))
+                                
+				Set fso=createObject("Scripting.FileSystemObject")
+
+				fso.copyfolder originalpath, destinationpath
+				Reporter.ReportEvent micPass, "Source Folder from Server Copied Successfully to the Destination Path", "Pass"
+			  
+    End If
+		
+Set fso=nothing
+
+
+
+
+
+Note:Recovery VBS Script will run in backend simultaneously
+
+Set wshell = CreateObject("WScript.Shell")
+i = 2
+While i > 0 And wshell.AppActivate("Inbox - Microsoft Outlook") = FALSE
+  WScript.Sleep 3000
+    i = i - 1
+Wend
+
+b=wshell.AppActivate("Microsoft Office Outlook")
+If i=0 Then
+
+    If ( b) Then 
+  Set ob=Createobject("Wscript.shell")
+	ob.sendkeys "{TAB}"
+	WScript.Sleep 5
+	ob.Sendkeys "{TAB}"
+	WScript.Sleep 2
+	ob.Sendkeys "%(A)"
+   WScript.Sleep 5
+	ob.sendkeys "{TAB}"
+	WScript.Sleep 5
+	ob.Sendkeys "{TAB}"
+	ob.Sendkeys "{ENTER}"
+End if 
+
+
+End If

@@ -1,0 +1,29 @@
+
+' Regular Expression used in File System Object to count the particular word or sentence in Txt File
+sFileName="D:\Test-03.txt"
+sString="\|304556\|"
+bIgnoreCase=True
+
+Call MatchesFound (sFileName, sString,bIgnoreCase)
+
+Function MatchesFound (sFileName, sString,bIgnoreCase)
+Const FOR_READING = 1
+Dim oFso, oTxtFile, sReadTxt, oRegEx, oMatches
+Set oFso = CreateObject("Scripting.FileSystemObject")
+Set oTxtFile = oFso.OpenTextFile(sFileName, FOR_READING)
+sReadTxt = oTxtFile.ReadAll
+Msgbox  oTxtFile.line
+
+Set oRegEx = New RegExp
+oRegEx.Pattern = sString
+oRegEx.IgnoreCase = bIgnoreCase
+oRegEx.Global = True
+
+
+Set oMatches = oRegEx.Execute(sReadTxt)
+MatchesFound = oMatches.Count
+msgbox  MatchesFound
+Set oTxtFile = Nothing 
+Set oFso = Nothing 
+Set oRegEx = Nothing
+End Function

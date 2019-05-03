@@ -1,0 +1,829 @@
+
+
+
+
+            Driver Script For Maintain Appraiser profile
+
+
+
+
+'**************************************************CCCIS QAAG***********************************************************************************************************************
+'Script Name: Maintain Appraiser Profile
+'Author: 	Cognizant
+'Created Date: 
+'Addons:  Activex , .WEB
+'Description: 	 
+'Manual test case:  AutoverseMaintain IC
+'AUT Name and Version:     
+'QTP Version of this script:                 QTP11.0
+'Shared Object Repository Files:  
+'Datatable: 
+'Initial Conditions: 
+'Parameters:
+'Dependancies:
+'Is there a ReadMeFile?:    No                 Yes/No
+'**********************************************************************************************************************************************************************************
+'Modification Log:
+'Name			                 Date			           Description
+' 
+'
+'**********************************************************************************************************************************************************************************
+	'***Forcing Variable declarations
+	Option Explicit	
+
+	Dim gblnDebugMode
+	Environment.Value("Iteration_StartTime") = CRAFTLite_Initialize()
+
+	'***Check Debug mode setting and proceed accordingly
+	gblnDebugMode = CRAFTLite_GetConfig("DebugMode")
+
+	If (gblnDebugMode = "True") Then
+		'***Turn off error handling to enable debugging
+		Environment.Value("OnError") = "NextStep"
+	End If
+	
+	If (Environment.Value("OnError") <> "NextStep") Then
+			On Error Resume Next
+	End If
+
+	'***Calling the Test cases
+	AutoVerseMaintainIC_AppraiserProfile()
+	'***Error handling function for handling errors
+	CRAFTLite_ErrHandler Err
+	'***Wrapper Function for reporting errors
+	CRAFTLite_WrapUp()
+
+'================================================================================================================================
+' Subroutine: AutoVerseMaintainIC_AppraiserProfile
+'================================================================================================================================
+'Subroutine to perform auoverse related functionality
+'Input Parameters 		: None
+'
+'Return Value    		: None
+'================================================================================================================================
+Public Sub AutoVerseMaintainIC_AppraiserProfile()
+
+	Dim oPage
+	Dim strUserName			'***This is used to store the user name
+	Dim strPassword	 		'***This is used to store the pasword
+	Dim strPortalURL		 '***This is used to store the URL
+	Dim strStaffAppraiserName  	'***This is used to store the staff appraiser name
+	Dim strStaffAppraiserLastName	'***This is used to store the staff appraiser Last name
+	Dim strAppraiserOffice		'***This is used to store the appraiser office
+	Dim strOfficeAppraiserName		'***This is used to store the office appraiser name
+	Dim strDriveInAppraiserName		'***This is used to store the Drive In appraiser name
+	Dim strDriveInOffice					'***This is used to store the Drive In office name
+	Dim strDriveInOfficeAppraiserName		'***This is used to store the Drive In office appraiser name
+	Dim strRepairFacilityAppraiserName		'***This is used to store the RF appraiser name
+	Dim strRepairFacilityCity		'***This is used to store the RF appraiser city
+	Dim strRepairFacilityState		'***This is used to store the RF appraiser state
+	Dim strRepairFacilityLocationAppraiserName	'***This is used to store the RF  Location based appraiser name
+	Dim strRepairFacilityStateAppraiserName		'***This is used to store the RF state based appraiser name
+	Dim strIndependentAppraiserName			'***This is used to store the Independent appraiser name
+	Dim strIndependentLocationAppraiserName		'***This is used to store the Independent location appraiser name
+	Dim strIndependentAppraiserCity		'***This is used to store the Independent appraiser city
+	Dim strIndependentAppraiserState			'***This is used to store the Independent appraiser state
+	Dim strStaffAppraiserTableColumnName 	'***This is used to store the staff appraiser table column names
+	Dim strRepairAppraiserTableColumnName	'***This is used to store the repair appraiser table column names
+	Dim strDriveInAppraiserTableColumnName		'***This is used to store the drive-in appraiser table column names
+	Dim strIndependentAppraiserTableColumnName		'***This is used to store the independent appraiser table column names
+    Dim oDictWebRadio				'***Dictionary objects of web radio button
+	Dim oDictColumnName			'***Dictionary object of the appraiser table column name
+	Dim oDictAppraiser				'***Dictionary object of the appraiser details
+	Dim arrName							'***Array for storing name
+	Dim oDictProfile					'***Dictionary object of the appraiser profile data that needs to be modified
+	Dim oDictDeleteCoverage		'***Dictionary object of coverage details
+	Dim oDictLink						'***Dictionay object of Links
+
+'=============================================================
+' Constants: For Maintain Appraiser Profile
+'=============================================================
+	Const c_Appraiser = "Appraiser"
+	Const c_Staff = "Staff"
+	Const c_DriveIn = "DriveIn"
+	Const c_Repair =  "Repair"
+	Const c_IndependentAppraiser = "IA"
+	Const c_StaffRadio = "STF"
+	Const c_DriveInRadio = "DIA"
+	Const c_RepairShopRadio = "DRP"
+	Const c_IndependentAppraiserRadio = "IAI"
+	Const c_NameRadio = "Name"
+	Const c_ClaimOfficeradio = "ClaimOffice"
+	Const c_LocationRadio = "Location"
+	Const c_StatesRadio = "States"
+	Const c_AllRadio = "GetAll"
+	Const c_All ="All"
+	Const c_DescriptionValue = "TEST CCC PORTAL AUTOMATION"
+	Const c_NoteValue = "TEST CCC PORTAL AUTOMATION"
+	Const c_RatingValue = 2
+	Const c_CapacityValue =2
+	Const c_ToZipValue = "98105"
+	Const c_FromZipValue = "98104"
+	Const c_Status = "#0"
+	Const c_SaveMessage = "The Appraiser Profile changes were saved successfully"
+	Const c_DaySuffix = " / day"
+	Const c_AppraiserFooter = "Showing <n> of <n> Appraisers"
+            
+'=============================================================
+	'***Get Data from data table
+	strUserName = CRAFTLite_GetData("UserName")			
+	strPassword = CRAFTLite_GetData("Password")
+	strPortalURL = CRAFTLite_GetData("URL")			
+	strStaffAppraiserName = CRAFTLite_GetData("StaffAppraiserName")
+	arrName = split(strStaffAppraiserName,",")
+	strStaffAppraiserLastName = Trim(arrName(1))
+	strAppraiserOffice = CRAFTLite_GetData("AppraiserOffice")
+	strOfficeAppraiserName = CRAFTLite_GetData("OfficeAppraiserName")
+	strDriveInAppraiserName = CRAFTLite_GetData("DriveInAppraiserName")
+	strDriveInOffice = CRAFTLite_GetData("DriveInOffice")
+	strDriveInOfficeAppraiserName = CRAFTLite_GetData("DriveInOffice")
+	strRepairFacilityAppraiserName = CRAFTLite_GetData("RepairFacilityAppraiserName")
+	strRepairFacilityCity = CRAFTLite_GetData("RepairFacilityCity")
+	strRepairFacilityState = CRAFTLite_GetData("RepairFacilityState")
+	strRepairFacilityLocationAppraiserName = CRAFTLite_GetData("RepairFacilityLocationAppraiserName")
+	strRepairFacilityStateAppraiserName = CRAFTLite_GetData("RepairFacilityStateAppraiserName")
+	strIndependentAppraiserName = CRAFTLite_GetData("IndependentAppraiserName")
+	strIndependentLocationAppraiserName = CRAFTLite_GetData("IndependentLoactionAppraiserName")
+	strIndependentAppraiserCity = CRAFTLite_GetData("RepairFacilityCity")
+	strIndependentAppraiserState = CRAFTLite_GetData("RepairFacilityState")
+	strStaffAppraiserTableColumnName = CRAFTLite_GetData("StaffColumn")
+	strRepairAppraiserTableColumnName = CRAFTLite_GetData("RepairShopColumn")
+	strDriveInAppraiserTableColumnName =  CRAFTLite_GetData("DriveInColumn")
+	strIndependentAppraiserTableColumnName = CRAFTLite_GetData("IndependentColumn")
+        
+'============================================================
+	'***Closing all the browsers before invoking the application	
+	Call CloseBrowser()
+
+	'***Launching the browser
+	Call Browser_Launch(strPortalURL)
+
+	'***Login into the poratl with username and password
+	Set oPage = Browser("Connect to CCC Portal").Page("Connect to CCC Portal")
+		Call Portal_Login(oPage,strUserName,strPassword)
+
+	'***Manage work section link verification
+	Set oPage=Browser("CCC Portal").Page("CCC Portal")
+	Set oDictLink = CreateObject("Scripting.Dictionary")
+		oDictLink.add "Maintain Appraiser Profile", "Maintain Appraiser Profile"
+		oDictLink.add "Maintain User Documents", "Maintain User Documents"
+		oDictLink.add "Maintain Appraiser Search", "Maintain Appraiser Search"
+		Call LinkVerify(oPage,oDictLink)
+	Set oDictLink = Nothing
+
+		Call MaintainAppraiserProfileClick(oPage)
+
+	'***Maintain appraiser link verification
+	Set oPage=Browser("CCC Portal").Page("Maintain Appraisers")
+	Set oDictLink = CreateObject("Scripting.Dictionary")
+		oDictLink.add "Maintain Appraiser Profile", "Maintain Appraiser Profile"
+		oDictLink.add "Maintain Appraiser Search", "Maintain Appraiser Search"
+		Call LinkVerify(oPage,oDictLink)
+	Set oDictLink = Nothing
+
+	'***Appraiser  type Web radio button verification
+	'***Adding the names of the appraiser type web radio group
+	Set oDictWebRadio= CreateObject("Scripting.Dictionary") 
+		oDictWebRadio.add "Type", c_Appraiser
+		'***Appraiser radio total
+		oDictWebRadio.add "Total", 4
+		oDictWebRadio.add "Radio-1", c_StaffRadio
+		oDictWebRadio.add "Radio-2", c_DriveInRadio
+		oDictWebRadio.add "Radio-3", c_RepairShopRadio
+		oDictWebRadio.add "Radio-4", c_IndependentAppraiserRadio
+		Call AppraiserWebRadioVerification(oPage,oDictWebRadio)
+	 '***Clearing the objects
+	Set oDictWebRadio =  Nothing
+
+	'***Staff  type Web radio button verification
+	'***Adding the names of the staff type web radio group
+	Set oDictWebRadio= CreateObject("Scripting.Dictionary") 
+		oDictWebRadio.add "Type", c_Staff
+		'***Staff radio total
+		oDictWebRadio.add "Total", 2
+		oDictWebRadio.add "Radio-1", c_NameRadio
+		oDictWebRadio.add "Radio-2", c_ClaimOfficeradio
+		Call AppraiserWebRadioVerification(oPage,oDictWebRadio)
+	'***Clearing the object
+	Set oDictWebRadio =  Nothing
+
+	'***Drive In  type Web radio button verification
+	'***Adding the names of the Drive In type web radio group
+	Set oDictWebRadio= CreateObject("Scripting.Dictionary") 
+		oDictWebRadio.add "Type", c_DriveIn
+		'***DriveIn radio total
+		oDictWebRadio.add "Total", 2
+		oDictWebRadio.add "Radio-1", c_NameRadio
+		oDictWebRadio.add "Radio-2", c_ClaimOfficeradio
+		Call AppraiserWebRadioVerification(oPage,oDictWebRadio)
+	'***Clearing the object
+	Set oDictWebRadio =  Nothing
+
+	'***Repair  type Web radio button verification
+	'***Adding the names of the Repair type web radio group
+	Set oDictWebRadio= CreateObject("Scripting.Dictionary") 
+		oDictWebRadio.add "Type", c_Repair
+		'***Repair radio total
+		oDictWebRadio.add "Total", 3
+		oDictWebRadio.add "Radio-1", c_NameRadio
+		oDictWebRadio.add "Radio-2", c_LocationRadio
+		oDictWebRadio.add "Radio-3", c_StatesRadio
+		Call AppraiserWebRadioVerification(oPage,oDictWebRadio)
+	'***Clearing the object
+	Set oDictWebRadio =  Nothing
+
+	'***Independent appraiser  type Web radio button verification
+	'***Adding the names of the Independent appraiser  web radio group
+	Set oDictWebRadio= CreateObject("Scripting.Dictionary") 
+		oDictWebRadio.add "Type", c_IndependentAppraiser
+		'***Independent Appraiser radio total
+		oDictWebRadio.add "Total", 4
+		oDictWebRadio.add "Radio-1", c_NameRadio
+		oDictWebRadio.add "Radio-2", c_LocationRadio
+		oDictWebRadio.add "Radio-3", c_StatesRadio 
+		oDictWebRadio.add "Radio-4",c_AllRadio
+		Call AppraiserWebRadioVerification(oPage,oDictWebRadio)
+	'***Clearing the object
+	Set oDictWebRadio =  Nothing
+		
+	'***Selecting the staff appraiser with sub category as "NAME"
+	Set oDictAppraiser = CreateObject("Scripting.Dictionary") 
+		oDictAppraiser.add "Type", c_Staff
+		oDictAppraiser.add "SearchBy", c_NameRadio
+		oDictAppraiser.add "Name",strStaffAppraiserLastName
+		Call AppraiserSelect(oPage,oDictAppraiser)
+
+	
+	'***Verifying whether the column names are displayed correctly
+		Call AppraiserResultTableVerify(oPage,strStaffAppraiserTableColumnName)
+
+
+	'***Adding the profile data 
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Staff", strStaffAppraiserName
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "ToZip", c_ToZipValue
+		oDictProfile.add "FromZip", c_FromZipValue
+		oDictProfile.add "Status", c_Status
+		oDictProfile.add "SaveMessage",c_SaveMessage
+		'***Modifying the appraiser  profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+	Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+	Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Staff", strStaffAppraiserName
+		oDictProfile.add "Description",c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+		oDictProfile.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+	Set oDictProfile = Nothing
+
+	'***Deleting the added coverage to avoid overwriting 
+	Set oDictDeleteCoverage = CreateObject("Scripting.Dictionary") 
+		oDictDeleteCoverage.add "Staff", strStaffAppraiserName
+		oDictDeleteCoverage.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+	'***Deleting the coverage
+	Call CoverageDelete(oPage,oDictDeleteCoverage)
+	Set oDictDeleteCoverage = Nothing
+
+	'***Selecting the staff appraiser with sub category as "Office"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") '*** Adding items to the NextActivity Dictionary Object
+		oDictAppraiser.add "Type", c_Staff
+		oDictAppraiser.add "SearchBy", c_ClaimOfficeradio
+		oDictAppraiser.add "Office",strAppraiserOffice
+
+	Call FindAppraiserClick(oPage)
+
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+	
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strStaffAppraiserTableColumnName)
+    
+	Call AppraiserTableFooterVerify(oPage,c_AppraiserFooter)
+
+	'***Adding the profile data
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Staff", strOfficeAppraiserName	
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "ToZip", c_ToZipValue
+		oDictProfile.add "FromZip", c_FromZipValue
+		oDictProfile.add "Status",c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+		'***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+	Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+	
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+	
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Staff", strOfficeAppraiserName	
+		oDictProfile.add "Description",c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+		oDictProfile.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+	'***Deleting the added coverage to avoid overwriting 
+	Set oDictDeleteCoverage = CreateObject("Scripting.Dictionary") 
+		oDictDeleteCoverage.add "Staff", strOfficeAppraiserName	
+		oDictDeleteCoverage.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+	'***Deleting the coverage
+	Call CoverageDelete(oPage,oDictDeleteCoverage)
+	Set oDictDeleteCoverage = Nothing
+
+	'***Selecting the Drive In appraiser with sub category as "NAME"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") 
+		oDictAppraiser.add "Type", c_DriveIn
+		oDictAppraiser.add "SearchBy", c_NameRadio
+		oDictAppraiser.add "Name",strDriveInAppraiserName
+
+	Call FindAppraiserClick(oPage)
+
+	Call AppraiserSelect(oPage,oDictAppraiser)
+	
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strDriveInAppraiserTableColumnName)
+
+	'***Adding the profile data 
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "DriveIn", strDriveInAppraiserName	
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "Status", c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "DriveIn", strDriveInAppraiserName	
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity",  c_CapacityValue&c_DaySuffix 
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+	Set oDictProfile = Nothing
+	'***Selecting the Drive In appraiser with sub category as "Office"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") 
+		oDictAppraiser.add "Type", c_DriveIn
+		oDictAppraiser.add "SearchBy", c_ClaimOfficeradio
+		oDictAppraiser.add "Office",strDriveInOffice
+
+	Call FindAppraiserClick(oPage)
+	
+	Call AppraiserSelect(oPage,oDictAppraiser)
+	
+
+	Call AppraiserTableFooterVerify(oPage,c_AppraiserFooter)
+
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strDriveInAppraiserTableColumnName)
+
+	'***Adding the profile data 
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "DriveIn", strDriveInOfficeAppraiserName	
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "Status", c_Status
+		oDictProfile.add "SaveMessage",c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "DriveIn", strDriveInOfficeAppraiserName	
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	'***Selecting the Reapir appraiser with sub category as "NAME"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") '*** Adding items to the NextActivity Dictionary Object
+		oDictAppraiser.add "Type", c_Repair
+		oDictAppraiser.add "SearchBy", c_NameRadio
+		oDictAppraiser.add "Name",strRepairFacilityAppraiserName
+
+	Call FindAppraiserClick(oPage)
+	
+	Call AppraiserSelect(oPage,oDictAppraiser)
+		
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strRepairAppraiserTableColumnName)
+
+	'***Adding the profile data 
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Repair", strRepairFacilityAppraiserName	
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "Status", c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Repair", strRepairFacilityAppraiserName
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	'***Selecting the Repair appraiser with sub category as "Location"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") '*** Adding items to the NextActivity Dictionary Object
+		oDictAppraiser.add "Type", c_Repair
+		oDictAppraiser.add "SearchBy", c_LocationRadio
+		oDictAppraiser.add "City",strRepairFacilityCity
+		oDictAppraiser.add "State",strRepairFacilityState
+	Call FindAppraiserClick(oPage)
+		
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strRepairAppraiserTableColumnName)
+
+	'***Adding the profile data
+	Set oDictProfile = CreateObject("Scripting.Dictionary") '*** Adding items to the NextActivity Dictionary Object
+		oDictProfile.add "Repair", strRepairFacilityLocationAppraiserName	
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "Status", c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Repair", strRepairFacilityLocationAppraiserName
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+        '***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	'***Selecting the Repair appraiser with sub category as "State"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") 
+		oDictAppraiser.add "Type", c_Repair
+		oDictAppraiser.add "SearchBy", c_StatesRadio
+		oDictAppraiser.add "State",strRepairFacilityState
+
+	Call FindAppraiserClick(oPage)
+	
+	Call AppraiserSelect(oPage,oDictAppraiser)
+		
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strRepairAppraiserTableColumnName)
+
+	Call AppraiserTableFooterVerify(oPage,c_AppraiserFooter)
+
+	'***Adding the profile data
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Repair", strRepairFacilityStateAppraiserName	
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "Status", c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "Repair", strRepairFacilityStateAppraiserName
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+        '***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	'***Selecting the Independent appraiser with sub category as "NAME"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") '*** Adding items to the NextActivity Dictionary Object
+		oDictAppraiser.add "Type", c_IndependentAppraiser
+		oDictAppraiser.add "SearchBy", c_NameRadio
+		oDictAppraiser.add "Name",strIndependentAppraiserName
+
+	Call FindAppraiserClick(oPage)
+
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strIndependentAppraiserTableColumnName)
+
+	'***Adding the profile data
+	Set oDictProfile = CreateObject("Scripting.Dictionary") '*** Adding items to the NextActivity Dictionary Object
+		oDictProfile.add "IA", strIndependentAppraiserName
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "ToZip", c_ToZipValue
+		oDictProfile.add "FromZip", c_FromZipValue
+		oDictProfile.add "Status",c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "IA", strIndependentAppraiserName
+		oDictProfile.add "Description",c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+		oDictProfile.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	'***Deleting the added coverage to avoid overwriting
+	Set oDictDeleteCoverage = CreateObject("Scripting.Dictionary") 
+		oDictDeleteCoverage.add "IA", strIndependentAppraiserName
+		oDictDeleteCoverage.add "Coverage",c_FromZipValue&" - "&c_ToZipValue
+		'***Deleting the coverage
+		Call CoverageDelete(oPage,oDictDeleteCoverage)
+    Set oDictDeleteCoverage = Nothing
+
+	'***Selecting the Independent appraiser with sub category as "Loaction"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") 
+		oDictAppraiser.add "Type", c_IndependentAppraiser
+		oDictAppraiser.add "SearchBy", c_LocationRadio
+		oDictAppraiser.add "City",strIndependentAppraiserCity
+		oDictAppraiser.add "State",strIndependentAppraiserState
+
+	Call FindAppraiserClick(oPage)
+	
+	Call AppraiserSelect(oPage,oDictAppraiser)
+		
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strIndependentAppraiserTableColumnName)
+
+	'***Adding the profile data
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "IA", strIndependentLocationAppraiserName 
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "ToZip", c_ToZipValue
+		oDictProfile.add "FromZip", c_FromZipValue
+		oDictProfile.add "Status",c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary")
+		oDictProfile.add "IA", strIndependentLocationAppraiserName 
+		oDictProfile.add "Description",c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+		oDictProfile.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	'***Deleting the added coverage to avoid overwriting 
+	Set oDictDeleteCoverage = CreateObject("Scripting.Dictionary") 
+		oDictDeleteCoverage.add "IA", strIndependentLocationAppraiserName 
+		oDictDeleteCoverage.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+		'***Deleting the coverage
+		Call CoverageDelete(oPage,oDictDeleteCoverage)
+	Set oDictDeleteCoverage = Nothing
+
+	'***Selecting the Independent appraiser with sub category as "State"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") 
+		oDictAppraiser.add "Type", c_IndependentAppraiser
+		oDictAppraiser.add "SearchBy", c_StatesRadio
+		oDictAppraiser.add "State",strIndependentAppraiserState
+
+	Call FindAppraiserClick(oPage)
+	
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strIndependentAppraiserTableColumnName)
+
+	Call AppraiserTableFooterVerify(oPage,c_AppraiserFooter)
+
+	'***Adding the profile data 
+	Set oDictProfile = CreateObject("Scripting.Dictionary")
+		oDictProfile.add "IA", strIndependentLocationAppraiserName 
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "ToZip", c_ToZipValue
+		oDictProfile.add "FromZip", c_FromZipValue
+		oDictProfile.add "Status",c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary") 
+		oDictProfile.add "IA", strIndependentLocationAppraiserName 
+		oDictProfile.add "Description",c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+		oDictProfile.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	'***Deleting the added coverage to avoid overwriting 
+	Set oDictDeleteCoverage = CreateObject("Scripting.Dictionary") 
+		oDictDeleteCoverage.add "IA", strIndependentLocationAppraiserName 
+		oDictDeleteCoverage.add "Coverage",  c_FromZipValue&" - "&c_ToZipValue
+		'***Deleting the coverage
+		Call CoverageDelete(oPage,oDictDeleteCoverage)
+    Set oDictDeleteCoverage = Nothing
+
+	'***Selecting the Independent appraiser with sub category as "All"
+	Set oDictAppraiser= CreateObject("Scripting.Dictionary") '*** Adding items to the NextActivity Dictionary Object
+		oDictAppraiser.add "Type", c_IndependentAppraiser
+		oDictAppraiser.add "SearchBy", c_All
+		
+	Call FindAppraiserClick(oPage)
+		
+	Call AppraiserSelect(oPage,oDictAppraiser)
+		
+	'***Verifying whether the column names are displayed correctly
+	Call AppraiserResultTableVerify(oPage,strIndependentAppraiserTableColumnName)
+
+	Call AppraiserTableFooterVerify(oPage,c_AppraiserFooter)
+	'***Adding the profile data 
+	Set oDictProfile = CreateObject("Scripting.Dictionary")
+		oDictProfile.add "IA", strIndependentLocationAppraiserName 
+		oDictProfile.add "Description", c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue
+		oDictProfile.add "ToZip", c_ToZipValue
+		oDictProfile.add "FromZip", c_FromZipValue
+		oDictProfile.add "Status",c_Status
+		oDictProfile.add "SaveMessage", c_SaveMessage
+        '***Modifying the appraiser profile with the above profile data
+		Call AppraiserProfileModify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	Call FindAppraiserClick(oPage)
+	'***Selecting the appraiser for verifying whether the profile gets updated
+	Call AppraiserSelect(oPage,oDictAppraiser)
+
+    Set oDictAppraiser = Nothing
+
+	'***Adding the updated  profile data that needs to be verfied
+	Set oDictProfile = CreateObject("Scripting.Dictionary")
+		oDictProfile.add "IA", strIndependentLocationAppraiserName 
+		oDictProfile.add "Description",c_DescriptionValue
+		oDictProfile.add "Note", c_NoteValue
+		oDictProfile.add "Rating", c_RatingValue
+		oDictProfile.add "Capacity", c_CapacityValue&c_DaySuffix
+		oDictProfile.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+		'***Profile data verification
+		Call AppraiserProfileVerify(oPage,oDictProfile)
+    Set oDictProfile = Nothing
+
+	'***Deleting the added coverage to avoid overwriting
+	Set oDictDeleteCoverage = CreateObject("Scripting.Dictionary") '*** Adding items to the NextActivity Dictionary Object
+		oDictDeleteCoverage.add "IA", strIndependentLocationAppraiserName 
+		oDictDeleteCoverage.add "Coverage", c_FromZipValue&" - "&c_ToZipValue
+		'***Deleting the coverage
+		Call CoverageDelete(oPage,oDictDeleteCoverage)
+    Set oDictDeleteCoverage = Nothing
+
+	Set oPage = Nothing
+	
+End Sub
+
+'**************************************************************************************************************************************************************************************
+'End of script
+'**************************************************************************************************************************************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

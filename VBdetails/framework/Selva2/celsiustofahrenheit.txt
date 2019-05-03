@@ -1,0 +1,327 @@
+         
+        			Driver sript for CelsiusToFahrenheit
+
+'**************************************************CCCIS QAAG***********************************
+'Script Name: CelsiusToFahrenheit
+'Author: 	
+'Created Date: 
+'Addons: 
+'Description: 	 
+'Manual test case:  
+'AUT Name and Version:     
+'QTP Version of this script:                 QTP 11.0	
+'Shared Object Repository Files:  
+'Datatable: 
+'Initial Conditions: 
+'Parameters:
+'Dependancies:
+'Is there a ReadMeFile?:                     Yes/No
+'***********************************************************************************************
+'Modification Log:
+'Name			                 Date			           Description
+' 
+'
+'***********************************************************************************************
+	'***Declaring for force validation
+	Option Explicit
+
+	Environment.Value("Iteration_StartTime") = CRAFTLite_Initialize()
+
+	'***Calling the Test case
+	TempConvertCelsiusToFahrenheit()
+	
+	CRAFTLite_ErrHandler Err
+	'***Extract the report
+	CRAFTLite_WrapUp()  
+
+'===============================================================================================
+'Subroutine Name    :	CelsiusToFahrenheit
+'===============================================================================================
+' This subroutine is used to convert the celsius to fahrenheit
+'
+' 	Parameters 	  : 	None
+'
+'	Returns   			 : 	Nothing
+'
+'===============================================================================================
+Public Sub TempConvertCelsiusToFahrenheit()
+
+	'***Declaring variables
+	Dim strWebServiceURL
+	Dim strContentType
+	Dim strSOAPAction
+	Dim strCelsiusValue
+
+	'***Getting data from the data table
+	strWebServiceURL=CRAFTLite_GetData("WSDL_URL")
+	strContentType=CRAFTLite_GetData("WSDL_ContentType")
+	strSOAPAction=CRAFTLite_GetData("WSDL_SOAP_Action")
+	strCelsiusValue=CRAFTLite_GetData("Celsius")
+
+	'***To convert value from celsius to fahrenheit
+	Call CelsiusToFahrenheit(strWebServiceURL,strContentType,strSOAPAction,strCelsiusValue)
+
+End Sub
+'***********************************************************************************************
+' End of the Script
+'***********************************************************************************************
+
+
+QFL
+
+'***********************************************************************************************
+' Script:  TemperatureConvertion.qfl
+'
+' This qfl file can be used to temperature convertion functionalities
+' 
+' Author: Cognizant
+'	
+'
+' Purpose: To handle temperature convertion
+'	 
+' 
+' Modified:
+'	
+'**********************************************************************************************
+'***Declaring for force validation
+Option Explicit
+
+'===============================================================================================
+' Subroutine: CelsiusToFahrenheit
+'===============================================================================================
+' This subroutine is used to convert celsius to fahrenheit
+'
+' Parameters: 
+'			strWebServiceURL - URL of the web services
+'			strContentType - Content type for sending the SOAP message with header
+'			strSOAPAction - Soap Action for sending the SOAP message with header
+'			strCelsiusValue - Celsius value to be used in the xml file
+'							
+' Returns:   		Nothing
+' ===============================================================================================
+Public Sub CelsiusToFahrenheit(strWebServiceURL,strContentType,strSOAPAction,strCelsiusValue)
+
+	'***Declaring Variables
+	Dim oXMLFile
+	Dim strResponse
+	Dim c_Fahrenheit
+
+' ===================================================
+	'***Declaring Constants
+	c_Fahrenheit="86"
+
+' ===================================================
+	'***To load the xml to send the request
+	Set oXMLFile=loadXML("CelsiusToFahrenheit")
+
+	'***To editt the xml file with celsius value
+	Call EditXMLTag(oXMLFile,"Celsius", strCelsiusValue)
+	
+	'***To send the request
+	 strResponse=SendRequest(strWebServiceURL,strContentType,strSOAPAction, oXMLFile)
+
+	 '***To Validate the xml with expected value
+	 Call VerifyXML(strResponse,"CelsiusToFahrenheitResult",c_Fahrenheit)
+
+	 '***Clearing the objects
+	 Set oXMLFile=Nothing
+
+End Sub
+
+'=====================================================================================================
+' Subroutine: FahrenheitToCelsius
+'=====================================================================================================
+' This subroutine is used to convert the value from fahrenheit to celsius
+'
+' Parameters: 
+'		strWebServiceURL - URL of the web services
+'		strContentType - Content type for sending the SOAP message with header
+'		strSOAPAction - Soap Action for sending the SOAP message with header
+'		strFahrenheitValue -  Fahrenheit value to be used in the xml
+'							
+' Returns:   	Nothing
+' ====================================================================================================
+Public Sub FahrenheitToCelsius(strWebServiceURL,strContentType,strSOAPAction,strFahrenheitValue)
+
+	'***Declaring Variables
+	Dim oXMLFile
+	Dim strResponse
+	Dim c_Celsius
+
+' ===================================================
+	'***Declaring Constants
+	c_Celsius="30"
+
+' ===================================================
+	'***To load the xml to send the request
+	Set oXMLFile=loadXML("FahrenheitToCelsius")
+
+	'***To editt the xml file with fahrenheit value
+	Call EditXMLTag(oXMLFile,"Fahrenheit",strFahrenheitValue)
+	
+	'***To send the request
+	 strResponse=SendRequest(strWebServiceURL,strContentType,strSOAPAction, oXMLFile)
+
+	 '***To Validate the xml with expected value
+	 Call VerifyXML(strResponse,"FahrenheitToCelsiusResult",c_Celsius)
+
+	 '***Clearing the objects
+	 Set oXMLFile=Nothing
+
+End Sub
+'*****************************************************************************************************
+'End of the script
+'*****************************************************************************************************
+
+
+Common Webservice
+
+'*****************************************************************************************************
+' Script:  Sendrequest.qfl
+'
+' This qfl file can be used for  send a request to wbservice
+' 
+' Author: Cognizant
+'	
+' Purpose: Handling Sendrequest functionality 
+'	 
+' Modified:
+'	
+'******************************************************************************
+Option Explicit '***Forcing Variable declarations
+
+'======================================================================
+' Function: SendRequest
+'======================================================================
+' Function for Sending the request to the webservice
+'
+' Parameters: 
+'			WebServiceURL - URL of the webservice
+'			ContentType - Format of the xml
+'			SOAPAction - Action to be performed in the SOAP
+'			strRequest - To send the xml file as request
+'    
+' Returns:
+'			WinHTTP.ResponseText  - Response XML message 
+'======================================================================
+Public Function SendRequest(WebServiceURL,ContentType,SOAPAction, strRequest)
+
+	Dim WinHTTP
+	'***Creating WinHTTP object to proceed the web service messaging
+	Set WinHTTP=CreateObject("WinHttp.WinHttpRequest.5.1")
+	WinHTTP.Open "Post", WebServiceURL, False
+	WinHTTP.SetRequestHeader "Content-Type", ContentType
+	WinHTTP.SetRequestHeader "SOAPAction", SOAPAction
+
+	'***Sending the xml file as request
+	WinHTTP.Send strRequest.xml
+	SendRequest=WinHTTP.ResponseText
+
+	'***Deleting the WinHTTP object created
+	Set WinHTTP=Nothing
+
+End Function
+
+'======================================================================
+' Function: LoadXML
+'======================================================================
+' Function for loading the xml from QC to QTP test
+'
+' Parameters: 
+'		FileName - Name of the XML to be used
+' Returns:
+'		LoadXML - Returns the loaded xml
+'======================================================================
+Public Function LoadXML(FileName)
+
+	'***Declaring variable
+   Dim xmlDoc
+
+   	'***To load the XML file by creating the 'XMLDOM' object
+   Set xmlDoc = CreateObject("Microsoft.XMLDOM")
+	xmlDoc.load PathFinder.Locate(FileName&".xml")
+	Set LoadXML=xmlDoc
+
+End Function
+
+'======================================================================
+' Subroutine: EditXMLTag
+'======================================================================
+' Subroutine for editing the XML tag values
+'
+' Parameters: 
+'			XMLFile - Xml file to be used for editing
+'			TagName - On which tag element the value should be edited
+'			strTagValue - Value to be updated in the given xml file
+' Returns:
+'			Nothing
+'======================================================================
+Public Sub EditXMLTag(XMLFile,TagName,strTagValue)
+
+   '***To edit the tagvalue
+	XMLFile.getElementsByTagName(TagName).item(0).text=strTagValue
+
+End Sub
+
+'======================================================================
+' Subroutine: EditXMLAttribute
+'======================================================================
+' Subroutine for editing the XML attribute values
+'
+' Parameters: 
+'		XMLFile - Xml file to be used for editing
+'		AttributeName - On which attribute present in the xml tag to be edited
+'		strAttributeValue - Value to be updated in the given xml file
+' Returns:
+'		Nothing
+'======================================================================
+Public Sub EditXMLAttribute(XMLFile, AttributeName,strAttributeValue)
+
+   '***To edit the attribute value
+	XMLFile.getElementsByTagName(AttributeName).item(0).attributes.item(0).text=strAttributeValue
+
+End Sub
+
+
+' Subroutine: VerifyXML
+'======================================================================
+' Subroutine for validate the XML tag values with expected values
+'
+' Parameters: 
+'							strResponse - Xml response from request sent
+'							TagName -  Xml tag name is used to verfiry in xml file
+'							TagName -  Xml tag name is used to verfiry in xml file
+' Returns:
+'							Nothing
+'======================================================================
+Public Sub VerifyXML(strResponse, TagName, strValueToBeVerifed)
+	'***Declaring variables
+	Dim XMLFile
+	Dim bReturn
+	Dim strMessage
+	Dim strActualValue
+
+	bReturn=False
+
+	Set XMLFile=CreateObject("Microsoft.XMLDOM")
+	XMLFile.LoadXML(strResponse)
+	strActualValue= XMLFile.getElementsByTagName(TagName).item(0).text
+
+	'***Comparing expected value is matching with actual value
+	If strValueToBeVerifed=strActualValue Then		
+		bReturn=True
+		strMessage=strValueToBeVerifed &" - Found in the Responsed  XML"
+	Else
+		strMessage=strValueToBeVerifed &" - Not Found in the Responsed  XML - " & strActualValue
+
+	End If
+
+    CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"VerifyXML.ReportLogger",strMessage, bReturn
+
+End Sub
+
+'**********************************************************************************************************************
+' End of the Script
+'**********************************************************************************************************************
+
+

@@ -1,0 +1,7 @@
+Use a Proxy Server Check ON
+Address: 10.44.1.7 Port:8080
+Bypass Check ON
+
+
+Do Not use Proxy server for Addresses beginning with:
+10.44.*.*;10.22.*.*;10.44.1.7:8080;10.44.66.39;10.1.*.*;202.54.*.*;10.44.66.221:7002

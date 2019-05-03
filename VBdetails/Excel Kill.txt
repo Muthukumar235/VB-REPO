@@ -1,0 +1,10 @@
+  Function Kill_Excel()
+ set winobj = getobject("winmgmts:")
+que = "select * from win32_process where name = 'EXCEL.EXE'"
+set resultobj = winobj.execquery(que)
+for each processobj in resultobj
+   processobj.terminate(1)
+Next
+set winobj =nothing
+set resultobj = nothing
+   End Function

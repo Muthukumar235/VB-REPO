@@ -1,0 +1,453 @@
+
+				CRAFTLiteQC_Support.qfl
+
+'*********************************************************************************************************************
+' Script:  CRAFTLiteQC_Support.qfl
+'
+' This qfl file can be used for QC Related actions.
+' 
+' Author: Cognizant
+'	
+'
+' Purpose: Support the QC related functionalities in CRAFTLite Framework
+'	  
+' Modified:
+'	
+'*********************************************************************************************************************
+Option Explicit	'***Forcing Variable declarations
+'=====================================================================================================================
+' Function: CRAFTLiteQC_GetRelativePath
+'=====================================================================================================================
+' Function to return the framework folder relative path in QC
+' 
+'Parameters:  None  
+'    
+' Returns:		 QC RelativePath
+'=====================================================================================================================
+Public Function CRAFTLiteQC_GetRelativePath()
+
+	Dim oQtpApp
+	Dim strFrameworkRootFolder
+	
+	Set oQtpApp = CreateObject("QuickTest.Application")
+	'***The Pre-requisite here is that the user should have already added the framework folder in the 
+              first position under QTP's folder list
+	strFrameworkRootFolder = oQtpApp.Folders.Item(1)
+	Set oQtpApp = Nothing
+	CRAFTLiteQC_GetRelativePath = strFrameworkRootFolder
+
+End Function
+'=====================================================================================================================
+' Function: CRAFTLiteQC_GetScenario
+'=====================================================================================================================
+' Function to return the Scenario Name
+' 
+'Parameters:   None
+'    
+' Returns:		 CRAFTLiteQC_GetScenario
+'=====================================================================================================================
+Public Function CRAFTLiteQC_GetScenario()
+
+	Dim oQtpApp
+	Dim oQtpTest
+	Dim strTestScriptPath
+	Dim arrSplitPath
+	Dim strScenarioFolderName
+	
+	Set oQtpApp = CreateObject("QuickTest.Application")
+	Set oQtpTest = oQtpApp.Test
+	strTestScriptPath = oQtpTest.Location
+	arrSplitPath = Split(strTestScriptPath,"\")
+	
+	strScenarioFolderName = arrSplitPath(UBound(arrSplitPath)-2)
+	CRAFTLiteQC_GetScenario = strScenarioFolderName
+	
+	'***Release all objects
+	Set oQtpTest = Nothing
+	Set oQtpApp = Nothing
+
+End Function
+'=======================================================================================================================
+' Subroutine: CRAFTLiteQC_SetUpTempResultFolder
+'=======================================================================================================================
+' Subroutine to setup temporary Results folder in local machine
+' 
+'Parameters:   None
+'    
+' Returns:		 Nothing
+'=======================================================================================================================
+Public Sub CRAFTLiteQC_SetUpTempResultFolder()
+
+	Dim strTempResultPath
+	Dim oFso
+
+	strTempResultPath = Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp")
+	Set oFso = CreateObject("Scripting.FileSystemObject")
+	
+	'***Create Temp results folder if it does not exist
+	If Not oFso.FolderExists (strTempResultPath) Then
+		oFso.CreateFolder(strTempResultPath)
+	End If
+	
+	strTempResultPath = strTempResultPath & "\" & Environment.Value("TestName")
+	
+	'***Delete test case level result folder if it already exists
+	If oFso.FolderExists (strTempResultPath) Then
+		oFso.DeleteFolder(strTempResultPath)
+	End If
+	
+	'***Create separate folder with the test case name
+	oFso.CreateFolder(strTempResultPath)
+	
+	'***Create subfolders for different result types
+	oFso.CreateFolder(strTempResultPath & "\Excel Results")
+	oFso.CreateFolder(strTempResultPath & "\HTML Results")
+	oFso.CreateFolder(strTempResultPath & "\Screenshots")
+	
+	'***Release all objects
+	Set oFso = Nothing
+
+End Sub
+'========================================================================================================================
+' Subroutine: CRAFTLiteQC_UploadResultsToQC
+'========================================================================================================================
+' Subroutine to upload execution Results to QC
+' 
+'Parameters:  None
+'    
+' Returns:		 Nothing
+'========================================================================================================================
+Public Sub CRAFTLiteQC_UploadResultsToQC()
+
+	Dim strTempResultFolder
+	Dim strTestName
+
+	strTempResultFolder = Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp") & "\" 
+                                                                           & Environment.Value("TestName")
+	strTestName = Environment.Value("TestName")
+	
+	CRAFTLiteQC_AttachFileToTestRun strTempResultFolder & "\Excel Results\" & strTestName & ".xls"
+	CRAFTLiteQC_AttachFileToTestRun strTempResultFolder & "\HTML Results\" & strTestName & ".html"
+	CRAFTLiteQC_AttachFolderToTestRun strTempResultFolder & "\Screenshots"
+
+End Sub
+'========================================================================================================================
+' Subroutine: CRAFTLiteQC_AttachFileTestRun
+'========================================================================================================================
+' Subroutine to attach a local file to the current test run
+' 
+'Parameters: 
+'						strFilePath -  File Path to be used
+'    
+' Returns:		 Nothing
+'========================================================================================================================
+Public Sub  CRAFTLiteQC_AttachFileToTestRun(strFilePath)
+
+	On Error Resume Next
+	
+	Dim oFoldAttachments
+	Dim oFoldAttachment
+	Dim oFso
+
+	Set oFoldAttachments =  QCUtil.CurrentRun.Attachments
+	Set oFoldAttachment = oFoldAttachments.AddItem(Null)
+	oFoldAttachment.FileName = strFilePath
+	oFoldAttachment.Type = 1
+	oFoldAttachment.Post	
+
+End Sub
+'==========================================================================================================================
+' Subroutine: CRAFTLiteQC_AttachFolderToTestRun
+'==========================================================================================================================
+' Subroutine to attach the contents of a local folder to the current test run
+' 
+'Parameters: 
+'		strFolderPath -  Folder Path to be used
+'    
+' Returns:	Nothing
+'==========================================================================================================================
+Public Sub CRAFTLiteQC_AttachFolderToTestRun (strFolderPath)
+
+	Dim oFso
+	Dim oFolder
+	Dim oFileList
+	Dim oFile
+
+	Set oFso = CreateObject("Scripting.FileSystemObject")
+	Set oFolder = oFso.GetFolder(strFolderPath)
+	Set oFileList = oFolder.Files
+	For each oFile in oFileList
+		CRAFTLiteQC_AttachFileToTestRun oFile.Path
+	Next
+	
+	Set oFile = Nothing
+	Set oFileList = Nothing
+	Set oFolder = Nothing
+	Set oFso = Nothing
+
+End Sub
+'===========================================================================================================================
+' Subroutine: CRAFTLiteQC_ExportReportedEventsToExcel
+'===========================================================================================================================
+' Subroutine to export the reported events in the test case to Excel
+' 
+'Parameters: 
+'		strCurrentTestCase            -  Current test case to be used
+'		strReportedEventSheet   -  Reportevent sheet
+'    
+' Returns:	Nothing
+'============================================================================================================================
+Public Sub CRAFTLiteQC_ExportReportedEventsToExcel(strCurrentTestCase, strReportedEventSheet)
+
+	DataTable.ExportSheet Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp") & "\" & Environment.Value("TestName") & "\Excel Results\" & strCurrentTestCase & ".xls",strReportedEventSheet
+
+End Sub
+'=============================================================================================================================
+' Subroutine: CRAFTLiteQC_ExportReportedEventsToHtml
+'=============================================================================================================================
+' Subroutine to export the reported events in the test case to Html
+' 
+'Parameters: 
+'		strCurrentTestCase -  Current test case to be used
+'		strReportedEventSheet -  Reportevent sheet
+'    
+' Returns:	Nothing
+'=============================================================================================================================
+Public Sub CRAFTLiteQC_ExportReportedEventsToHtml(strProjectName, strCurrentTestCase, strReportedEventSheet, strReportsTheme)	
+
+	Dim oFso
+	Dim oMyFile
+	Dim nPassCounter
+	Dim  nFailCounter
+	Dim nVerificationNo
+	Dim strIteration
+	Dim strStepName
+	Dim strDescription
+	Dim strStatus
+	Dim  strTime
+	Dim  strExecutionTime
+	Dim nRowcount
+	Dim  nRowcounter
+	Dim  strTempStatus
+	Dim strPath, strScreenShotName
+	Dim arrSplitTimeStamp
+	Dim strTimeStampDate
+	Dim strTimeStampTime
+	Dim strOnError
+	Dim strIterationMode
+	Dim nStartIteration
+	Dim nEndIteration
+	Dim strHeadColor
+	Dim strSettColor
+	Dim strContentBGColor
+	
+	If InStr(1, QCUtil.CurrentRun.Name,"_") Then
+		arrSplitTimeStamp = Split(QCUtil.CurrentRun.Name,"_")
+	Else
+		arrSplitTimeStamp = Split(QCUtil.CurrentRun.Name," ")
+	End If
+	
+	strTimeStampDate = Replace(arrSplitTimeStamp(1),"-","/") & "/" & Year(Date)	'***QC Run object contains only date and month, but not year
+	strTimeStampTime = Replace(arrSplitTimeStamp(2),"-",":")
+	strPath = Environment.Value("ResultPath") & "\" & Environment.Value("TimeStamp") & "\" & Environment.Value("TestName") & "\HTML Results\" & strCurrentTestCase & ".html"	
+	nPassCounter = 0
+	nFailCounter = 0
+	nVerificationNo = 0
+	
+	strOnError = Environment.Value("OnError")
+	
+	Dim oQtpApp
+	Set oQtpApp = CreateObject("QuickTest.Application")
+	Select Case oQtpApp.Test.Settings.Run.IterationMode
+		Case "oneIteration"
+			strIterationMode = "Run one iteration only"
+		Case "rngIterations"
+			strIterationMode = "Run from <i>Start Iteration</i> to <i>End Iteration</i>"
+		Case "rngAll"
+			strIterationMode = "Run all iterations"
+	End Select
+	nStartIteration = oQtpApp.Test.Settings.Run.StartIteration
+	nEndIteration = oQtpApp.Test.Settings.Run.EndIteration
+	
+	strHeadColor = "#12579D"
+	strSettColor = "#BCE1FB"
+	strContentBGColor = "#FFFFFF"
+	
+	CRAFTLite_SetReportsTheme strReportsTheme, strHeadColor, strSettColor, strContentBGColor
+	
+	'***Create a HTML file
+	Set oFso = CreateObject("Scripting.FileSystemObject")
+	Set oMyFile = oFso.CreateTextFile(strPath, True)
+	oMyFile.Close
+
+	'***Open the HTML file for writing
+	Set oMyFile = oFso.OpenTextFile(strPath,8)
+
+	'***Create the Report header
+	oMyFile.Writeline("<html>")
+		oMyFile.Writeline("<head>")
+			oMyFile.Writeline("<meta http-equiv=" & "Content-Language" & "content=" & "en-us>")
+			oMyFile.Writeline("<meta http-equiv="& "Content-Type" & "content=" & "text/html; charset=windows-1252" & ">")
+			oMyFile.Writeline("<title> Test Case Automation Execution Results</title>")
+			oMyFile.Writeline("<script>")
+				oMyFile.Writeline("top.window.moveTo(0, 0);")
+				oMyFile.Writeline("window.resizeTo(screen.availwidth, screen.availheight);")
+			oMyFile.Writeline("</script>")
+		oMyFile.Writeline("</head>")
+		
+		oMyFile.Writeline("<body bgcolor = #FFFFFF>")
+			oMyFile.Writeline("<blockquote>")
+				oMyFile.Writeline("<p align = center><table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					oMyFile.Writeline("<tr>")
+						oMyFile.Writeline("<td COLSPAN = 6 bgcolor ="& strHeadColor & ">")
+							oMyFile.Writeline("<p align=center><font color=#FFFFFF size=4 face= "& chr(34)&"Copperplate Gothic Bold"&chr(34) & ">&nbsp;" & strProjectName & " - " & strCurrentTestCase & " Automation Execution Results" & "</font><font face= " & chr(34)&"Copperplate Gothic Bold"&chr(34) & "></font> </p>")
+						oMyFile.Writeline("</td>")
+					oMyFile.Writeline("</tr>")
+					
+					oMyFile.Writeline("<tr>")
+						oMyFile.Writeline("<td COLSPAN = 6 bgcolor ="& strHeadColor & ">")
+							oMyFile.Writeline("<p align=center><b><font color=#FFFFFF size=2 face= Verdana>"& "&nbsp;"& "DATE: " & strTimeStampDate & " " & strTimeStampTime)
+						oMyFile.Writeline("</td>")
+					oMyFile.Writeline("</tr>")
+					
+					oMyFile.Writeline("<table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					oMyFile.Writeline("<tr bgcolor = "& strSettColor & ">")
+						oMyFile.Writeline("<td colspan =2>")
+							oMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & " size=2 face= Verdana>"& "&nbsp;"& "OnError: " & strOnError)
+						oMyFile.Writeline("</td>")
+						
+						oMyFile.Writeline("<td colspan =2>")
+							oMyFile.Writeline("<p align=right><b><font color=" & strHeadColor & " size=2 face= Verdana>"& "&nbsp;"& "IterationMode: " &  strIterationMode )
+						oMyFile.Writeline("</td>") 
+					oMyFile.Writeline("</tr>")
+					
+					If oQtpApp.Test.Settings.Run.IterationMode = "rngIterations" Then
+						oMyFile.Writeline("<tr bgcolor = "& strSettColor & ">")
+							oMyFile.Writeline("<td COLSPAN = 4>")
+								Dim strESpace, strSSpace
+								strESpace="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+								strSSpace="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+								oMyFile.Writeline("<p align=justify><b><font color=" & strHeadColor & " size=2 face= Verdana>"& strSSpace & "Start Iteration: " & nStartIteration & strESpace & "End Iteration: " & nEndIteration)
+							oMyFile.Writeline("</td>")
+						oMyFile.Writeline("</tr>")
+					End If
+				oMyFile.Writeline("<table>")
+				
+				oMyFile.Writeline("<p align = center><table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					oMyFile.Writeline("<tr bgcolor=" & strHeadColor & ">")
+						oMyFile.Writeline("<td width=" & "400")
+							oMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Iteration</b>")
+						oMyFile.Writeline("</td>")
+						
+						oMyFile.Writeline("<td width=" & "400")
+							oMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Step Name</b>")
+						oMyFile.Writeline("</td>")
+						
+						oMyFile.Writeline("<td width=" & "400")
+							oMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Description</b>")
+						oMyFile.Writeline("</td>")
+						
+						oMyFile.Writeline("<td width=" & "400")
+							oMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Status</b>")
+						oMyFile.Writeline("</td>")
+						
+						oMyFile.Writeline("<td width=" & "400")
+							oMyFile.Writeline("<p align=" & "center><b><font color = white face=" & "Arial Narrow " & "size=" & "2" & ">" & "Time</b>")
+						oMyFile.Writeline("</td>")
+					oMyFile.Writeline("</tr>")
+				'***End of Header
+				
+				'***Add Data to the Test Case Log HTML file from the excel file
+					nRowcount = Datatable.GetSheet(strReportedEventSheet).GetRowCount
+					For nRowcounter = 1 To nRowcount
+						Datatable.GetSheet(strReportedEventSheet).SetCurrentRow(nRowcounter)	
+						strIteration = Datatable("Iteration",strReportedEventSheet)
+						strStepName = Datatable("Step_Name",strReportedEventSheet)
+						strDescription = Datatable("Description",strReportedEventSheet)
+						strStatus = Datatable("Status",strReportedEventSheet)
+						strTime = Datatable("Time",strReportedEventSheet)
+						
+						If strIteration = "" Then
+							oMyFile.Writeline("<tr bgcolor =" & strContentBGColor & ">")
+								oMyFile.Writeline("<td COLSPAN = 6>")
+									oMyFile.Writeline("<p align=center><b><font size=2 face= Verdana>"& "&nbsp;"& strDescription & ":&nbsp;&nbsp;" &  strTime  & "&nbsp")
+								oMyFile.Writeline("</td>")
+							oMyFile.Writeline("</tr>")
+							nRowcounter = nRowcounter + 1
+						Else
+							oMyFile.Writeline("<tr bgcolor =" & strContentBGColor & ">")
+								oMyFile.Writeline("<td width=" & "400>")
+									oMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strIteration)
+								oMyFile.Writeline("</td>")
+								
+								oMyFile.Writeline("<td width=" & "400>")
+									strScreenShotName = "Iteration" & strIteration & "_" & Replace(strTime,":","-")
+									If(UCase(strStatus) = "FAIL" And Environment.Value("TakeScreenshotFailedStep")) Then										
+										oMyFile.Writeline("<p align=center><b><font face=" & "verdana" & "size=" & "2" & ">" & strStepName & "</font></b></a></p>")
+										oMyFile.Writeline("<p align=center><b><font face=" & "verdana" & "size=" & "1" & ">" & strScreenShotName & ".png" & "</font></b></a></p>")
+									ElseIf(UCase(strStatus) = "PASS" And Environment.Value("TakeScreenshotPassedStep")) Then										
+										oMyFile.Writeline("<p align=center><b><font face=" & "verdana" & "size=" & "2" & ">" & strStepName & "</font></b></a></p>")
+										oMyFile.Writeline("<p align=center><b><font face=" & "verdana" & "size=" & "1" & ">" & strScreenShotName & ".png" & "</font></b></a></p>")
+									Else
+										oMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strStepName)
+									End If
+								oMyFile.Writeline("</td>")
+								
+								oMyFile.Writeline("<td width=" & "400>")
+									oMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strDescription)
+								oMyFile.Writeline("</td>")
+								
+								oMyFile.Writeline("<td width=" & "400>")
+									If UCase(strStatus) = "PASS" Then
+										oMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#008000" & ">" & strStatus & "</font></b>")
+										nPassCounter = nPassCounter + 1	
+										nVerificationNo = nVerificationNo + 1
+									ElseIf UCase(strStatus) = "FAIL" Then
+										oMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#FF0000" & ">" & strStatus & "</font></b>")
+										nFailCounter = nFailCounter + 1
+										nVerificationNo = nVerificationNo + 1
+									Else
+										oMyFile.Writeline("<p align=" & "center" & ">" & "<b><font face=" & "Verdana " & "size=" & "2" & " color=" & "#8A4117" & ">" & strStatus & "</font></b>")
+									End If
+								oMyFile.Writeline("</td>")
+								
+								oMyFile.Writeline("<td width=" & "400>")
+									oMyFile.Writeline("<p align=" & "center><font face=" & "Verdana " & "size=" & "2" & ">"  &  strTime)
+								oMyFile.Writeline("</td>")
+							oMyFile.Writeline("</tr>")
+						End If
+					Next
+				oMyFile.Writeline("</table>")
+				
+				oMyFile.Writeline("<table border=1 bordercolor=" & "#000000 id=table1 width=900 height=31 cellspacing=0 bordercolorlight=" & "#FFFFFF>")
+					oMyFile.Writeline("<tr bgcolor =" & strSettColor & ">")
+						oMyFile.Writeline("<td colspan =1>")
+							oMyFile.Writeline("<p align=justify><b><font color=#000080 size=2 face= Verdana>"& "&nbsp;"& "No. Of Verification Points :&nbsp;&nbsp;" &  nVerificationNo & "&nbsp;")
+						oMyFile.Writeline("</td>")
+						
+						oMyFile.Writeline("<td colspan =1>")
+							oMyFile.Writeline("<p align=justify><b><font color=#000080 size=2 face= Verdana>"& "&nbsp;"& "Passed :&nbsp;&nbsp;" &  nPassCounter & "&nbsp;")
+						oMyFile.Writeline("</td>")
+						
+						oMyFile.Writeline("<td colspan =1>")	
+							oMyFile.Writeline("<p align=justify><b><font color=#000080 size=2 face= Verdana>"& "&nbsp;"& "Failed :&nbsp;&nbsp;" &  nFailCounter & "&nbsp;")
+						oMyFile.Writeline("</td>")
+					oMyFile.Writeline("</tr>")
+				oMyFile.Writeline("</table>")
+			oMyFile.Writeline("</blockquote>")
+		oMyFile.Writeline("</body>")
+	oMyFile.Writeline("</html>")
+	oMyFile.Close
+	
+	Set oMyFile = Nothing
+	Set oFso = Nothing
+	Set oQtpApp = Nothing
+
+End Sub
+'************************************************************************************************************************************************************************************************************
+' End of the Script
+'************************************************************************************************************************************************************************************************************
+
+
+
+

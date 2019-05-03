@@ -1,0 +1,509 @@
+'***************************************************************************************************************************************************************************
+'Function Name : NavigateLink
+'Purpose : To  Navigate to the specified link in MPAs application
+'Author : D.Gopinathan.
+'Created on :10/10/2011
+'Reviewer :
+'Reviewed on :
+'Input Arguments : 1 . Link Name : String Variable where  the  link name to be passed.(Reportpath="D:\Test_Reports\AmexReports\")
+'Return Value	: Function will return the  error number    						
+'Usage : Ernumber= NavigateLink("Click here to Add Banker /Sales Consultant")
+'Baed on Errnuber value ,User  has to write the flow like below
+'^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+'If Ernumber <> 0 Then
+'	Reporter.ReportEvent micFail ,"Run time error in Clicking the Link","Fail"
+'	ExitTest 
+'	else
+'	Reporter.ReportEvent micPass ,"Clciked successfully","Pass"
+'	'Code to  Cover th positive scenario 
+'End If
+'*****************************************************************************************************************************************************************************
+Function NavigateLink(linkname)
+	On error Resume next
+   	Set Navigate=Description.Create()
+	Navigate("html tag").value="A"
+	Navigate("text").value=linkname
+	
+	Browser("title:=MAPS.*").Page("title:=MAPS.*").link(Navigate).Click
+    NavigateLink= Err.number
+End Function
+
+
+'***************************************************************************************************************************************************************************
+'Function Name : DownloadFile
+'Purpose : To  downlaod the file after clicking the Excel link in MAPs application
+'Author : D.Gopinathan.
+'Created on :10/10/2011
+'Reviewer :
+'Reviewed on :
+'Input Arguments : 1 . Reportpath : String Variable where  the downloaded file needs to be saved.(Reportpath="D:\Test_Reports\AmexReports\")
+'Return Value	: Function will return the status as 1 or 0 (1 -File downloaded,0-File is not downloaded)									
+'Usage : dwnflg=DownloadFile(Reportpath)
+
+'*****************************************************************************************************************************************************************************
+Function     DownloadFile(Reportpath)
+ 
+	Dflag=0
+If  Browser("title:=[a-zA-Z].*").Dialog("text:=File Download").Exist(2) Then
+Browser("title:=[a-zA-Z].*").Dialog("text:=File Download").winbutton("text:=&Save").Click
+	If  Browser("title:=[a-zA-Z].*").Dialog("text:=File Download").winbutton("text:=&Save").Exist(2)Then
+		Browser("title:=[a-zA-Z].*").Dialog("text:=File Download").winbutton("text:=&Save").Click
+	End If
+		If Dialog("text:=0.* ").Dialog("text:=Save As").Exist(2)  OR  Dialog("text:=File Download").Dialog("text:=Save As").Exist(2)Then
+						If  Dialog("text:=0.* ").Dialog("text:=Save As").Exist(2) Then
+							DwnldFilename=Dialog("text:=0.* ").Dialog("text:=Save As").winedit("nativeclass:=Edit","attached text:=File &name:").GetROProperty("text")
+								'	  	msgbox  DwnldFilename							
+											Reportpath=Reportpath&DwnldFilename
+								'			msgbox  Reportpath
+											Dialog("text:=0.* ").Dialog("text:=Save As").winedit("nativeclass:=Edit","attached text:=File &name:").Set Reportpath
+											Dialog("text:=0.* ").Dialog("text:=Save As").winbutton("text:=&Save").Click
+											Dflag=1	  
+										  'Code to Click the save as Button again  it is  enabled
+													If  Dialog("text:=0.* ").Dialog("text:=Save As").exist(2)Then
+													 Enbflag=Dialog("text:=0.* ").Dialog("text:=Save As").GetROProperty("enabled")	 
+								'					msgbox    Enbflag
+															If  (Enbflag="True") then
+																Dialog("text:=0.* ").Dialog("text:=Save As").winbutton("text:=&Save").Click
+																Dflag=1	   
+															End If
+													End If
+														'Code to handle the same file downlaod in the same location by clicking yes button
+																If   Dialog("text:=0.* ").Dialog("text:=Save As").Dialog("text:=Save As").Exist(2) Then
+																	Dialog("text:=0.* ").Dialog("text:=Save As").Dialog("text:=Save As").winbutton("text:=&Yes").Click
+																	Dflag=1
+																End If	
+														End If'Dialog text 0
+														
+						If  Dialog("text:=File Download").Dialog("text:=Save As").Exist(2) Then
+							  DwnldFilename= Dialog("text:=File Download").Dialog("text:=Save As").winedit("nativeclass:=Edit","attached text:=File &name:").GetROProperty("text")
+							     '	  	msgbox  DwnldFilename							
+											Reportpath=Reportpath&DwnldFilename
+								'			msgbox  Reportpath
+											Dialog("text:=File Download ").Dialog("text:=Save As").winedit("nativeclass:=Edit","attached text:=File &name:").Set Reportpath
+											Dialog("text:=File Download ").Dialog("text:=Save As").winbutton("text:=&Save").Click
+											Dflag=1	  
+										  'Code to Click the save as Button again  it is  enabled
+													If  Dialog("text:=File Download ").Dialog("text:=Save As").exist(2)Then
+													 Enbflag=Dialog("text:=File Download ").Dialog("text:=Save As").GetROProperty("enabled")	 
+								'					msgbox    Enbflag
+															If  (Enbflag="True") then
+																Dialog("text:=File Download ").Dialog("text:=Save As").winbutton("text:=&Save").Click
+																Dflag=1	   
+															End If
+													End If
+														'Code to handle the same file downlaod in the same location by clicking yes button
+																If   Dialog("text:=File Download ").Dialog("text:=Save As").Dialog("text:=Save As").Exist(2) Then
+																	Dialog("text:=File Download").Dialog("text:=Save As").Dialog("text:=Save As").winbutton("text:=&Yes").Click
+																	Dflag=1
+																End If	 													
+											End If'
+
+		else
+			Reporter.ReportEvent micFail,"Save As File dialog  Download is Not available","Fail"
+		End If
+else
+Reporter.ReportEvent micFail,"File dialog  Download is Not available","Fail"
+End If
+DownloadFile=Dflag
+End Function
+
+',***************************************************************************************************************************************************************************
+' Created By : D.Gopinathan.
+'created On: 20-June-2011
+'Function Name:   SearchSetValues
+'Parmetes Required:  2
+'1.SearchBy     2.SearchOn
+'Passthe search By ,SerachOn Val ue ,function will invoke theSearch Result
+'return value will be 0 or error number.
+'usage:    Sflag=SearchSetValues(Searchby,Searchon)
+'**************************************************************************************************************************************************************************
+Function SearchSetValues(Searchby,Searchon)
+    On error Resume next
+Browser("title:=MAPS.*").Page("title:=MAPS.*").WebList("html tag:=SELECT","Index:=0").select Searchby
+Browser("title:=MAPS.*").Page("title:=MAPS.*").WebEdit("html tag:=INPUT","Index:=0").set Searchon
+Browser("title:=MAPS.*").Page("title:=MAPS.*").WebButton("html tag:=INPUT","Index:=0").Click
+
+SearchSetValues= Err.number
+End Function
+
+',***********************************************************************************************************************************************************************
+' Created By : D.Gopinathan.
+'created On: 20-June-2011
+'Function Name:   SearchThreeValues
+'Parmetes Required:  2
+'1.SearchBy    2.SearchBysecond Val      3 SearchOn   
+'Passthe serach By ,SerachOn Val ue,function will invoke theSearch Result
+'return value will be 0 or error number.
+' USAGE:    Sflag=SearchThreeValues(Searchby,SearchbySnd,Searchon)
+'*************************************************************************************************************************************************************************
+Function SearchThreeValues(Searchby,SearchbySnd,Searchon)
+ On error Resume next
+Browser("title:=MAPS.*").Page("title:=MAPS.*").WebList("html tag:=SELECT","Index:=0").select Searchby
+Browser("title:=MAPS.*").Page("title:=MAPS.*").WebList("html tag:=SELECT","Index:=1").select SearchbySnd
+Browser("title:=MAPS.*").Page("title:=MAPS.*").WebEdit("html tag:=INPUT","Index:=0").set Searchon
+Browser("title:=MAPS.*").Page("title:=MAPS.*").WebButton("html tag:=INPUT","name:=Search").Click
+SearchThreeValues=Err.number
+End Function
+'*************************************************************************************************************************************************************************
+'MAPS_LinkClick (Param1,index1,Param2,index2,Param3,index3)
+
+
+',***********************************************************************************************************************************************************************
+Function MAPS_LinkClick (Param1,index1,Param2,index2,Param3,index3)
+'StrLinkflag=0
+	Set MainMenu=Description.Create()
+	MainMenu("html tag").value="A"
+	MainMenu("text").value=Param1
+	MainMenu("index").value=index1
+	
+	 Set SubMenu1=Description.Create()
+	SubMenu1("html tag").value="A"
+	SubMenu1("text").value=Param2
+	SubMenu1("index").value=index2
+	
+	Set SubMenu2=Description.Create()
+	SubMenu2("html tag").value="A"
+	SubMenu2("text").value=Param3
+	SubMenu2("index").value=index3
+	
+'Browser("micclass:=Browser").Page("micclass:=Page").link(Mainmenu).FireEvent "onmouseover"
+'Browser("micclass:=Browser").Page("micclass:=Page").link(SubMenu1).FireEvent "onmouseover"
+'Browser("micclass:=Browser").Page("micclass:=Page").link(SubMenu2).FireEvent  "onclick"
+
+Browser("name:=([A-Z].*|)").Page("title:=([A-Z].*|)").link(Mainmenu).FireEvent "onmouseover"
+Browser("name:=([A-Z].*|)").Page("title:=([A-Z].*|)").link(SubMenu1).FireEvent "onmouseover"
+Browser("name:=([A-Z].*|)").Page("title:=([A-Z].*|)").link(SubMenu2).FireEvent  "onclick"
+
+'StrLinkflag=1
+'MAPS_LinkClick=StrLinkflag
+End Function
+
+'*************************************************************************************************************************************************************************
+'' Created By : G.Selva.
+'created On: 20-June-2011
+'Function Name:   BusinessDate()
+
+',***********************************************************************************************************************************************************************
+
+Function BusinessDate()
+
+If browser("name:=MAPS.*").Page("title:=MAPS.*").WebElement("innertext:= Business Date :.*","html tag:=DIV").Exist(1) Then
+BusDate=browser("name:=MAPS.*").Page("title:=MAPS.*").WebElement("innertext:= Business Date :.*","html tag:=DIV").GetROProperty("innertext")
+split1=split(BusDate,"|",-1)
+FV=split1(0)
+split2=split(FV,":",-1)
+BusinessDate=trim(split2(1))
+
+Else
+BusDate=browser("name:=([A-Z]|[a-z]|).*").Page("title:=([A-Z]|[a-z]|).*").WebElement("innertext:=Bussiness Date:.*","html tag:=DIV").GetROProperty("innertext")
+split1=split(BusDate,"|",-1)
+FV=split1(0)
+split2=split(FV,":",-1)
+BusinessDate=trim(split2(1))
+End If
+
+End Function
+
+'*************************************************************************************************************************************************************************
+'' Created By : G.Selva.
+'created On: 20-June-2011
+'Function Name:    ProcessingDate()
+
+',***********************************************************************************************************************************************************************
+
+Function ProcessingDate()
+
+dat=date
+split1=split(dat,"/",-1)
+ProcessingDate=trim(split1(1)&"/"&split1(0)&"/"&split1(2))
+
+End Function
+
+'*************************************************************************************************************************************************************************
+'' Created By : G.Selva.
+'created On: 20-June-2011
+'Function Name:    FIDate()
+
+',***********************************************************************************************************************************************************************
+
+Function FIDate()
+
+FinDate=browser("name:=MAPS.*").Page("title:=MAPS.*").WebElement("innertext:=Welcome, .*","html tag:=DIV").GetROProperty("innertext")
+split1=split(FinDate," ",-1)
+uboun=ubound(split1)
+FIDate=trim(split1(uboun-3))
+
+End Function
+'*************************************************************************************************************************************************************************
+'' Created By : G.Selva.
+'created On: 20-June-2011
+'Function Name:    MonthNam()
+
+',***********************************************************************************************************************************************************************
+
+Function MonthNam()
+
+BusinessDate1=split(BusinessDate,"/",-1)
+MonthNam=MonthName(BusinessDate1(1))
+
+End Function
+
+
+'*************************************************************************************************************************************************************************
+'' Created By : G.Selva.
+'created On: 20-June-2011
+'Function Name:    SelectBusinessdate()
+
+',***********************************************************************************************************************************************************************
+
+Function SelectBusinessdate()
+
+BusDate=browser("name:=([A-Z]|[a-z]|).*","CreationTime:=0").Page("title:=([A-Z]|[a-z]|).*").WebElement("innertext:=Bussiness Date:.*","html tag:=DIV").GetROProperty("innertext")
+split1=split(BusDate,"|",-1)
+FV=split1(0)
+split2=split(FV,":",-1)
+BusinessDate1=trim(split2(1))
+
+sp=split(BusinessDate1,"/",-1)
+
+dayn=sp(0)
+lef=left(dayn,1)
+If lef="0" Then
+	da1=trim(right(dayn,1))
+    Else
+	da1=trim(dayn)
+End If
+
+mon=sp(1)
+lef1=left(mon,1)
+If lef1="0" Then
+	mon1=trim(right(mon,1))
+Else
+	mon1=trim(mon)
+End If
+
+yea1=sp(2)
+
+WE=Browser("name:=Calendar").Page("title:=Calendar").WebElement("innertext:=.*\ .*","html tag:=B").GetROProperty("innertext")
+Split3=split(WE," ",-1)
+monname1=trim(split3(0))
+yea2=trim(split3(1))
+
+mon2=trim(Month("1-"&monname1&"-"&yea1))
+
+If  yea1=yea2 Then
+
+Elseif  yea2>yea1 then
+	diff1=yea2-yea1
+	For m=1 to diff1
+		Browser("name:=Calendar").Page("title:=Calendar").Image("alt:=Click to get Previous Year","html tag:=IMG","image type:=Image Link").Click
+		wait(1)
+	Next
+	
+Elseif yea1>yea2 then
+	diff1=yea1-yea2
+	For n=1 to diff1
+		Browser("name:=Calendar").Page("title:=Calendar").Image("alt:=Click to get Next Year","html tag:=IMG","image type:=Image Link").Click
+		wait(1)
+	Next
+
+End If
+
+If mon2=mon1 Then
+
+Elseif mon2>mon1 then
+	diff=mon2-mon1
+	For k=1 to diff
+		Browser("name:=Calendar").Page("title:=Calendar").Image("alt:=Click to get Previous Month","html tag:=IMG","image type:=Image Link").click
+		wait(1)
+	Next
+	
+Elseif mon1>mon2 then
+	diff=mon1-mon2
+	For l=1 to diff
+		Browser("name:=Calendar").Page("title:=Calendar").Image("alt:=Click to get Next Month","html tag:=IMG","image type:=Image Link").Click
+		wait(1)
+	Next
+	
+End If
+
+rcnt=Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").RowCount
+ccnt=Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").ColumnCount(rcnt)
+counter=0
+For i=2 to rcnt
+	For j=1 to ccnt
+	  cell=Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").GetCellData(i,j)
+	  If da1=cell Then
+		  If Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").ChildItem(i,j,"Link",0).exist(2) Then
+			Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").ChildItem(i,j,"Link",0).Click
+			counter=counter+1
+			Exit for
+		  End If
+		 
+	  End If
+
+
+	Next
+If counter=1 Then
+	Exit for
+End If
+Next
+
+End Function
+
+'*************************************************************************************************************************************************************************
+'' Created By : G.Selva.
+'created On: 20-June-2011
+'Function Name:    SelectProcessingdate()
+
+',***********************************************************************************************************************************************************************
+
+
+
+Function SelectProcessingdate()
+
+sp=split(ProcessingDate,"/",-1)
+
+dayn=sp(0)
+lef=left(dayn,1)
+If lef="0" Then
+	da1=trim(right(dayn,1))
+    Else
+	da1=trim(dayn)
+End If
+
+mon=sp(1)
+lef1=left(mon,1)
+If lef1="0" Then
+	mon1=trim(right(mon,1))
+Else
+	mon1=trim(mon)
+End If
+
+yea1=sp(2)
+
+WE=Browser("name:=Calendar").Page("title:=Calendar").WebElement("innertext:=.*\ .*","html tag:=B").GetROProperty("innertext")
+Split3=split(WE," ",-1)
+monname1=trim(split3(0))
+yea2=trim(split3(1))
+
+mon2=trim(Month("1-"&monname1&"-"&yea1))
+
+If  yea1=yea2 Then
+
+Elseif  yea2>yea1 then
+	diff1=yea2-yea1
+	For m=1 to diff1
+		Browser("name:=Calendar").Page("title:=Calendar").Image("alt:=Click to get Previous Year","html tag:=IMG","image type:=Image Link").Click
+		wait(1)
+	Next
+	
+Elseif yea1>yea2 then
+	diff1=yea1-yea2
+	For n=1 to diff1
+		Browser("name:=Calendar").Page("title:=Calendar").Image("alt:=Click to get Next Year","html tag:=IMG","image type:=Image Link").Click
+		wait(1)
+	Next
+
+End If
+
+If mon2=mon1 Then
+
+Elseif mon2>mon1 then
+	diff=mon2-mon1
+	For k=1 to diff
+		Browser("name:=Calendar").Page("title:=Calendar").Image("alt:=Click to get Previous Month","html tag:=IMG","image type:=Image Link").click
+		wait(1)
+	Next
+	
+Elseif mon1>mon2 then
+	diff=mon1-mon2
+	For l=1 to diff
+		Browser("name:=Calendar").Page("title:=Calendar").Image("alt:=Click to get Next Month","html tag:=IMG","image type:=Image Link").Click
+		wait(1)
+	Next
+	
+End If
+
+rcnt=Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").RowCount
+ccnt=Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").ColumnCount(rcnt)
+counter=0
+For i=2 to rcnt
+	For j=1 to ccnt
+	  cell=Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").GetCellData(i,j)
+	  If da1=cell Then
+		  If Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").ChildItem(i,j,"Link",0).exist(2) Then
+			Browser("name:=Calendar").Page("title:=Calendar").WebTable("html tag:=TABLE","name:=1").ChildItem(i,j,"Link",0).Click
+			counter=counter+1
+			Exit for
+		  End If
+		 
+	  End If
+	Next
+If counter=1 Then
+	Exit for
+End If
+Next
+
+End Function
+
+
+'*************************************************************************************************************************************************************************
+'' Created By : G.Selva.
+'created On: 20-June-2011
+'Function Name:    SelectProcessingdate()
+
+',***********************************************************************************************************************************************************************
+Function Disputeexecute()
+
+Browser("name:=MAPS.*").Page("title:=MAPS.*").Link("html tag:=A","innertext:=  Generate Letter","text:=  Generate Letter ","index:=0").Click
+If Browser("name:=Error Occurred").page("title:=Error Occurred").webElement("innertext:=Exception occured","html tag:=I").exist(2) Then
+	Disputeexecute=False
+Else
+	Disputeexecute=True
+End If
+   
+End Function
+
+
+',***********************************************************************************************************************************************************************
+' Created By : D.Gopinathan.
+'created On: 12-JDecember-2011
+'Function Name:   resultswrite(ExcelSheet,ExpResult,ActulResult,Rstrow)
+'Parmetes Required:  2
+'1.ExcelSheet    2.ExpResult Val      3 ActulResult 4,   Rstrow
+'*************************************************************************************************************************************************************************
+
+Function resultswrite(ExcelSheet,ExpResult,ActulResult,Rstrow,StrScreenShotPath, TCa)
+	
+  						  If  trim(ExpResult)=Trim(ActulResult) Then
+		
+						 ExcelSheet.cells(Rstrow,7).value="Pass"
+						 ExcelSheet.cells(Rstrow,7).font.colorindex=5
+						 else
+                         ExcelSheet.cells(Rstrow,7).value="Fail"
+						 ExcelSheet.cells(Rstrow,7).font.colorindex=3
+						 Call ScreenShot(StrScreenShotPath, TCa)
+						  		
+						End If  
+
+End Function 
+
+
+',***********************************************************************************************************************************************************************
+' Created By : selvakumar
+'Created On:December 23 -2011
+'Function Name:  ScreenShot(StrScreenShotPath, TCa)
+'Parmetes Required:  2
+
+'*************************************************************************************************************************************************************************
+
+Function ScreenShot(StrScreenShotPath, TCa)
+   sreenpath=StrScreenShotPath&"\"&Second(now)&TCa&".png"
+ 
+browser("title:=([A-Z]|[a-z]|).*").Page("title:=([A-Z]|[a-z]|).*").CaptureBitmap sreenpath,False
+
+End Function
+
+
+

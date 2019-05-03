@@ -1,0 +1,1188 @@
+
+
+
+Bussiness_Component AutoverseMaintainIC.qfl File
+
+
+
+'**********************************************************************************************************************************************************************************
+' Script:  AutoverseMaintainIC.qfl
+'
+' This qfl file can be used for AutoverseMaintainIC related functionalities
+' 
+' Author: Cognizant
+'	
+'
+' Purpose: Handling AutoverseMaintainIC functionality 
+'	 
+' 
+' Modified:
+'	
+'**********************************************************************************************************************************************************************************
+	Option Explicit	'***Forcing Variable declarations
+
+'===============================================================
+' Subroutine: LinkVerify
+'===============================================================
+' Subroutine to verify the links
+' 
+'Parameters:
+' 	 oPage - Page object to be used
+'    oDictLink - Dictionary items of link
+'
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub LinkVerify(oPage,oDictLink)
+
+   Dim oItem
+   Dim oLink
+
+	For Each oItem In oDictLink 
+
+		'***Selecting the required appraiser for verification
+		Select Case UCase(oItem) 
+
+			Case "MAINTAIN APPRAISER PROFILE"
+				Set oLink = oPage.Link(oDictLink.Item(oItem))
+		
+			Case "MAINTAIN USER DOCUMENTS"
+				Set oLink = oPage.Link(oDictLink.Item(oItem))
+
+			Case "MAINTAIN APPRAISER SEARCH"
+				Set oLink = oPage.Link(oDictLink.Item(oItem))
+
+			Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.LinkVerify","The item '"& oDictLink.Item(oItem) & "' was NOT present","Fail"
+
+			End Select
+
+		Call WebObjectWaitForVisible(oLink,3000) 	'***Verifying the visible property of the link
+
+	Next
+
+	Set oItem = Nothing
+	Set oLink = Nothing
+
+End Sub
+	
+'===============================================================
+' Subroutine: AppraiserWebRadioVerification
+'===============================================================
+' Subroutine to verify the radio buttons are displayed for each appraiser type correctly
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	oDictWebRadio - Dictionary object of web radio buttons
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub AppraiserWebRadioVerification(oPage,oDictWebRadio)
+
+	'***Intializing the required variables
+	Dim oWebRadio
+	Dim oItem
+	Dim nRadioCount
+
+	' Constants: For AppraiserWebRadioVerification
+	
+	 Const c_FirstRadio = 0
+	 Const c_SecondRadio = 1
+	 Const c_ThirdRadio = 2
+	 Const c_FourthRadio = 3
+
+
+    For Each oItem In oDictWebRadio 
+
+		'***Selecting the required appraiser for verification
+		Select Case UCase(oItem) 
+
+			Case "TYPE"
+				'***Setting the required appriaser webradio object
+				Environment.Value("AppraiserType") = oDictWebRadio.Item(oItem) '***Setting the environment variable for reporting purposes
+				Set oWebRadio = AppraiserSet(oPage,oDictWebRadio.Item(oItem))
+			'***Validating the radio buttons
+				nRadioCount = oWebRadio.GetROProperty("items count")
+
+			Case "TOTAL"
+
+				If nRadioCount = oDictWebRadio.Item(oItem) Then
+					CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoverseMaintainIC.AppraiserWebRadioVerification","The'"&Environment.Value("AppraiserType")&"' Appraiser Radio Total '"&nRadioCount&"'  matches","Pass"
+				Else
+					'***Reporting only the negative condition just a cross check to ensure the total radio buttons gets displayed as expected
+					CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoverseMaintainIC.AppraiserWebRadioVerification","The'"&Environment.Value("AppraiserType")&"' Appraiser Radio Total "&nRadioCount&"'("& oDictWebRadio.Item(oItem)&" )Mismatch","Fail"
+					Exit Sub
+				End If
+			
+			Case "RADIO-1"
+				'***Validating the first radio button
+				Call WebRadioGroupItemsValidate(oWebRadio,oDictWebRadio.Item(oItem),c_FirstRadio)
+
+			Case "RADIO-2"
+				'***Validating the second radio button
+				Call WebRadioGroupItemsValidate(oWebRadio,oDictWebRadio.Item(oItem),c_SecondRadio)
+
+			Case "RADIO-3"
+				'***Validating the third radio button
+				Call WebRadioGroupItemsValidate(oWebRadio,oDictWebRadio.Item(oItem),c_ThirdRadio)
+
+			Case "RADIO-4"
+				'***Validating the fourth radio button
+				Call WebRadioGroupItemsValidate(oWebRadio,oDictWebRadio.Item(oItem),c_FourthRadio)
+
+			Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.AppraiserWebRadioVerification","The item '"& oDictWebRadio.Item(oItem) & "' was NOT present","Fail"
+
+		End Select
+
+	Next
+
+	'***Clearing the objects
+	Set oWebRadio = Nothing
+	Set oItem = Nothing
+
+End Sub
+
+'===============================================================
+' Subroutine: AppraiserSelect
+'===============================================================
+' Subroutine to select the required appraiser
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	oDictAppraiser - Dictionary object containing the required appraiser information
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub AppraiserSelect(oPage,oDictAppraiser)
+
+	'***Intializing the required objects
+	Dim oWebRadio
+	Dim oItem
+
+	For Each oItem In oDictAppraiser 
+
+		Select Case UCase(oItem) 
+
+			Case "TYPE"
+				Set oWebRadio = AppraiserSet(oPage,oDictAppraiser.Item(oItem)) '***Selecting the required appraiser and setting the webradioobject
+			
+			Case "SEARCHBY"
+				Call AppraiserSubTypeSet(oPage,oWebRadio,oDictAppraiser.Item(oItem)) '***Selecting the subtype of appraiser
+			
+			Case "NAME"
+				Environment.Value("oEdit").Set oDictAppraiser.Item(oItem)	'***Setting the values
+
+			Case "OFFICE"
+				Call ListValueSelect(Environment.Value("oList"),oDictAppraiser.Item(oItem),3000)	'***Setting the values
+
+			Case "CITY" 
+				Environment.Value("oEdit").Set oDictAppraiser.Item(oItem)	'***Setting the values
+
+			Case "STATE"
+				Call ListValueSelect(Environment.Value("oList"),oDictAppraiser.Item(oItem),3000)	'***Setting the values
+
+			Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.AppraiserSelect","The item '"& oDictAppraiser.Item(oItem) & "' was NOT present","Fail"
+
+		End Select
+				
+	Next
+
+	oPage.WebButton("Search").Click
+
+	'***Clearing the objects
+	Set oWebRadio = Nothing
+	Set oItem = Nothing
+	
+End Sub
+
+'===============================================================
+' Function: AppraiserSet
+'===============================================================
+' Function to Set the appraiser object
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	strTypeOfAppraiser -  Type of the appraiser
+'    
+' Returns:		 Appriaser webradio object
+' =============================================================== 
+Public Function AppraiserSet(oPage,strTypeOfAppraiser)
+
+	'***Intializing the required objects
+	Dim oWebRadio
+
+
+	' Constants: For AppraiserSet
+
+	Const c_Staff = "STF"
+	Const c_DriveIn = "DIA"
+	Const c_Repair = "DRP"
+	Const c_IA = "IAI"
+
+	Select Case Ucase(strTypeOfAppraiser)
+
+		Case "APPRAISER"
+			Set oWebRadio=oPage.WebRadioGroup("AppraiserType")
+
+		Case "STAFF"
+			Set oWebRadio=oPage.WebRadioGroup("AppraiserType")
+			oWebRadio.Select c_Staff		'***Selecting the staff appraiser
+			Set oWebRadio=oPage.WebRadioGroup("Staff")
+
+		Case "DRIVEIN"
+			Set oWebRadio=oPage.WebRadioGroup("AppraiserType")
+			oWebRadio.Select c_DriveIn			'***Selecting the DriveIn appraiser
+			Set oWebRadio=oPage.WebRadioGroup("DriveIn")
+
+		Case "REPAIR"
+			Set oWebRadio=oPage.WebRadioGroup("AppraiserType")
+			oWebRadio.Select c_Repair		'***Selecting the Repair appraiser
+			Set oWebRadio=oPage.WebRadioGroup("RepairFacility")
+
+		Case "IA"
+			Set oWebRadio=oPage.WebRadioGroup("AppraiserType")
+			oWebRadio.Select c_IA		'***Selecting the Independent appraiser
+			Set oWebRadio=oPage.WebRadioGroup("IA")
+
+		Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.AppraiserSet","The item '"& strTypeOfAppraiser & "' was NOT present","Fail"
+
+	End Select
+
+	Set	AppraiserSet = oWebRadio
+
+End Function
+
+'===============================================================
+' Subroutine: AppraiserSubTypeSet
+'===============================================================
+' Subroutine to Set the appraiser sub-type object
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	oAppriaser -  required appraiser's object
+'	strSubType - sub type of the appraiser
+'    
+' Returns:	Nothing
+' ===============================================================
+Public Sub AppraiserSubTypeSet(oPage,oAppriaser,strSubType)
+
+	'***Intializing the required objects
+	Dim oEdit
+	Dim oList
+
+'=============================================================
+' Constants: For AppraiserSubTypeSet
+'=============================================================
+	Const c_Contains = "Contains"
+	Const c_All ="GetAll"
+
+'=============================================================
+	Select Case Ucase(strSubType)
+
+		Case "NAME"
+			oAppriaser.Select "Name"
+			oPage.WebRadioGroup("SearchBy").Select c_Contains' "#1" '***Search By Contains
+			Set oEdit=oPage.WebEdit("LastName")
+			Environment.Value("oEdit") = oEdit  '***Setting the edit object as environment variable object
+	
+		Case "CLAIMOFFICE"
+			oAppriaser.Select "ClaimOffice"
+			Set oList = oPage.WebList("Office")
+			Environment.Value("oList") = oList	'***Setting the list object as environment variable object
+	
+		Case "LOCATION"
+			oAppriaser.Select "Location"
+			Set oEdit = oPage.WebEdit("City")
+			Set oList = oPage.WebList("State")
+			Environment.Value("oEdit") = oEdit	'***Setting the edit object as environment variable object
+			Environment.Value("oList") = oList	  '***Setting the list object as environment variable object
+	
+		Case "STATES"
+			oAppriaser.Select "States"
+			Set oList = oPage.WebList("StateList")
+			Environment.Value("oList") = oList	'***Setting the list object as environment variable object
+	
+		Case "ALL"
+			oAppriaser.Select c_All
+	
+		Case Else 
+			CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.AppraiserSubTypeSet","The item '"& strSubType & "' was NOT present","Fail"
+
+	End Select
+
+	'***Clearing the objects
+	Set oEdit = Nothing
+	Set oList = Nothing
+
+End Sub
+
+'===============================================================
+' Subroutine: AppraiserResultTableVerify
+'===============================================================
+' Subroutine to verify the appraiser search table column names
+' 
+'Parameters:
+' 	oPage - Page object to be used
+' 	strColumnNames -  Column names to be verified
+'  
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub AppraiserResultTableVerify(oPage,strColumnNames)
+
+	Dim strDisplayedColumnNames
+	Dim nFlag
+
+	strDisplayedColumnNames = oPage.WebTable("Appraiser").GetROProperty("column names")
+
+	nFlag = StrComp(strColumnNames,strDisplayedColumnNames,1)
+       
+	If nFlag = 0 Then
+		CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoverseMaintainIC.AppraiserResultTableVerify","The Column Names '"&strColumnNames&"'  were displayed correctly","Pass"
+	Else
+		CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoverseMaintainIC.AppraiserResultTableVerify","The Column Names '"&strColumnNames&"'  were NOT displayed ("&strDisplayedColumnNames&") correctly","Fail"
+	End If
+              
+End Sub
+
+'===============================================================
+' Subroutine: AppraiserProfileModify
+'===============================================================
+' Subroutine to modify the appraiser profile
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	oDictProfile - Dictionary object of the required appraisers profile
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub AppraiserProfileModify(oPage,oDictProfile)
+
+	'***Intializing the required objects
+	Dim oTable
+	Dim oWebElement
+	Dim oItem
+
+	Set oTable=oPage.WebTable("Appraiser")
+
+	For Each oItem In oDictProfile 
+
+		Select Case UCase(oItem)
+
+			Case "STAFF"
+				'***Clicking the Maintain profile link
+				Call MaintainProfileClick(oTable,oItem,oDictProfile.Item(oItem))	
+
+			Case "DRIVEIN" 
+				'***Clicking the Maintain profile link
+				Call MaintainProfileClick(oTable,oItem,oDictProfile.Item(oItem))	
+
+			Case "REPAIR"
+				'***Clicking the Maintain profile link
+				Call MaintainProfileClick(oTable,oItem,oDictProfile.Item(oItem))	
+
+			Case "IA"
+				'***Clicking the Maintain profile link
+				Call MaintainProfileClick(oTable,oItem,oDictProfile.Item(oItem))	
+				
+			Case "DESCRIPTION"
+				'***Setting the description
+				oPage.WebEdit("Description").Set oDictProfile.Item(oItem) 			
+
+			Case "NOTE"
+				'***Setting the note
+				oPage.WebEdit("Note").Set oDictProfile.Item(oItem)						
+
+			Case "RATING"
+				'***Selecting the rating
+				Call ListValueSelect(oPage.WebList("Rating"),oDictProfile.Item(oItem),3000)				
+
+			Case "CAPACITY"
+				'***Setting the capacity
+				oPage.WebEdit("Capacity").Set oDictProfile.Item(oItem)				
+
+			Case "TOZIP"
+				'***Setting the noto-zip
+				oPage.WebEdit("ToZip").Set oDictProfile.Item(oItem)						
+				
+			Case "FROMZIP"
+				'***Setting the from-zip
+				oPage.WebEdit("FromZip").Set oDictProfile.Item(oItem)
+				oPage.Link("add").Click
+
+			Case "STATUS"
+				'***Setting the status
+				oPage.WebRadioGroup("Status").Select oDictProfile.Item(oItem)
+
+			Case "SAVEMESSAGE"
+				'***Verifying the save message
+				oPage.WebButton("Save").Click
+				Set oWebElement=oPage.WebElement("SaveMessage")
+				bReturn = WebElementValue_Compare(oWebElement,oDictProfile.Item(oItem),3000)
+               	Call resultLogger(oWebElement,bReturn,oDictProfile.Item(oItem),"AutoVerseMaintainIC.MaintainAppraiserSave")
+
+			Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.Appraiser Profile Modify","The item '"& oDictProfile.Item(oItem) & "' was NOT present","Fail"
+
+		End Select
+
+	Next
+	
+	'***Clearing the objects
+	Set oTable = Nothing
+	Set oWebElement = Nothing
+	Set oItem = Nothing
+
+End Sub
+
+'===============================================================
+' Subroutine: AppraiserProfileVerify
+'===============================================================
+' Subroutine to verify the modified appraiser profile
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	oDictProfile - Dictionary object of the updated appraisers profile
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub AppraiserProfileVerify(oPage,oDictProfile)
+
+	'***Intializing the required objects
+	Dim oTable
+	Dim oItem
+
+	Set oTable=oPage.WebTable("Appraiser")
+
+	For Each oItem In oDictProfile 
+
+		Select Case UCase(oItem)
+
+			Case "STAFF"
+				'***Setting the appraiser name as primary value environment variable
+				Environment.Value("PrimaryValue") = oDictProfile.Item(oItem)
+			
+			Case "DRIVEIN"
+				'***Setting the appraiser name as primary value environment variable
+				Environment.Value("PrimaryValue") = oDictProfile.Item(oItem)
+
+			Case "REPAIR" 
+				'***Setting the appraiser name as primary value environment variable
+				Environment.Value("PrimaryValue") = oDictProfile.Item(oItem)
+
+			Case "IA"
+				'***Setting the appraiser name as primary value environment variable
+				Environment.Value("PrimaryValue") = oDictProfile.Item(oItem)
+				
+			Case "DESCRIPTION"
+				'***Verifying wheter the description entered is correctly updated in appraiser table
+				Call WebTablePrimaryDataVerify(oTable,Environment.Value("PrimaryValue"),oDictProfile.Item(oItem),3000)
+				
+			Case "NOTE"
+				'***Verifying wheter the note entered is correctly updated in appraiser table
+				Call WebTablePrimaryDataVerify(oTable,Environment.Value("PrimaryValue"),oDictProfile.Item(oItem),3000)
+
+			Case "RATING"
+				'***Verifying wheter the rating entered is correctly updated in appraiser table
+				Call WebTablePrimaryDataVerify(oTable,Environment.Value("PrimaryValue"),oDictProfile.Item(oItem),3000)
+
+			Case "CAPACITY"
+				'***Verifying wheter the capacity entered is correctly updated in appraiser table
+				Call WebTablePrimaryDataVerify(oTable,Environment.Value("PrimaryValue"),oDictProfile.Item(oItem),3000)
+
+			Case "COVERAGE"
+				'***Verifying wheter the coverage entered is correctly updated in appraiser tables
+				Call WebTablePrimaryDataVerify(oTable,Environment.Value("PrimaryValue"),oDictProfile.Item(oItem),3000)
+
+			Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.Appraiser Profile Modify","The item '"& oDictProfile.Item(oItem) & "' was NOT present","Fail"
+
+		End Select
+
+	Next
+
+	'***Clearing the objects
+	Set oTable = Nothing
+	Set oItem = Nothing
+    
+End Sub
+
+'===============================================================
+' Subroutine: CoverageDelete
+'===============================================================
+' Subroutine to delete the added coverage to avoid duplication
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	oDictDeleteCoverage - Dictionary object of the coverage to be deleted
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub CoverageDelete(oPage,oDictDeleteCoverage)
+
+	'***intializing the required objects
+	Dim oTable
+	Dim oLink
+	Dim oItem
+	Dim oCoverageTable
+
+	'***Setting the appraiser table and coverage table objects
+	Set oTable=oPage.WebTable("Appraiser")
+	Set oCoverageTable = oPage.WebTable("Coverage")
+
+	For Each oItem In oDictDeleteCoverage 
+
+		Select Case UCase(oItem)
+
+			Case "STAFF"
+				'***Clicking the Maintain profile link
+				Call MaintainProfileClick(oTable,oItem,oDictDeleteCoverage.Item(oItem))
+
+			Case "IA"
+				'***Clicking the Maintain profile link
+				Call MaintainProfileClick(oTable,oItem,oDictDeleteCoverage.Item(oItem))
+
+			Case "COVERAGE"
+				Set oLink= WebTableObjectGet(oCoverageTable,oDictDeleteCoverage.Item(oItem),2,"Link",0,3000)
+					oLink.Click
+			
+			Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.Appraiser Profile Modify","The item '"& oDictProfile.Item(oItem) & "' was NOT present","Fail"
+
+		End Select
+
+	Next
+
+	oPage.WebButton("Save").Click
+
+	'***Clearing the objects
+	Set oTable = Nothing
+	Set oLink = Nothing
+	Set oCoverageTable = Nothing
+	Set oItem = Nothing
+
+End Sub
+
+'===============================================================
+' Subroutine: MaintainProfileClick
+'===============================================================
+' Subroutine to delete the added coverage to avoid duplication
+' 
+'Parameters:
+' 	oTable - Table object to be used
+'	strAppraiserName - Appraiser Name whose profile is being modified
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub MaintainProfileClick(oTable,strTypeOfAppraiser,strAppraiserName)
+
+   Dim oLink
+
+'=============================================================
+' Constants: For MaintainProfileClick
+'=============================================================
+	Const c_StaffColumn = 8
+	Const c_DriveInColumn = 7
+	Const c_RepairColumn =7
+	Const c_IndependentAppraiserColumn = 8
+	Const c_FirstIndex = 0
+
+'=============================================================
+	Select Case Ucase(strTypeOfAppraiser)
+   
+		Case "STAFF" 
+			Set oLink= WebTableObjectGet(oTable,strAppraiserName,c_StaffColumn,"Link",c_FirstIndex,3000)
+			oLink.Click
+
+		Case "DRIVEIN" 
+			Set oLink= WebTableObjectGet(oTable,strAppraiserName,c_DriveInColumn,"Link",c_FirstIndex,3000)
+				oLink.Click
+
+		Case "REPAIR" 
+			Set oLink= WebTableObjectGet(oTable,strAppraiserName,c_RepairColumn,"Link",c_FirstIndex,3000)
+				oLink.Click
+
+		Case "IA"
+			Set oLink= WebTableObjectGet(oTable,strAppraiserName,c_IndependentAppraiserColumn,"Link",c_FirstIndex,3000)
+				oLink.Click
+
+	End Select
+
+	Set oLink = Nothing
+
+End Sub
+
+'===============================================================
+' Subroutine: AppraiserTableFooterVerify
+'===============================================================
+' Subroutine to verify the footer messgae
+' 
+'Parameters:
+'						 oPage - Page object to be used
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub AppraiserTableFooterVerify(oPage,strMessage)
+
+	'***Intializing the objects
+	Dim nRowCount
+	Dim bFlag
+	Dim oTable
+	Dim oWebElement
+	Dim strVerifyMessage
+
+	Set oTable = oPage.WebTable("Appraiser")
+	nRowCount = oTable.GetROProperty("rows")
+	'***Replacing the generic <n> value with the rowcount of the table
+	strVerifyMessage = Replace(strMessage,"<n>",Cstr(nRowCount-1)) 
+
+	Set oWebElement =oPage.WebElement("FooterMessage")
+
+	bReturn=WebElementValue_Compare(oWebElement,strVerifyMessage,3000)
+	'***Log report
+	Call resultLogger(oWebElement, bReturn, strVerifyMessage,"AutoverseMaintainIC.AppraiserTableFooterVerify")
+
+	'***Clearing the object
+	Set oWebElement = Nothing
+	Set oTable = Nothing
+	
+End Sub
+
+'===============================================================
+' Subroutine: WebRadioGroupItemsValidate
+'===============================================================
+' Subroutine to validate the webradiogroup items
+' 
+'Parameters:
+' 	oWebRadio - webradio object to be verified
+'	strWebRadioName - Name of the webradio group
+'	nPosition - position of the radio button
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub WebRadioGroupItemsValidate(oWebRadio,strWebRadioName,nPosition)
+
+	Dim strItems
+	Dim arrItems
+
+	strItems = oWebRadio.GetROProperty("all items")
+	arrItems = Split(strItems,";")
+
+	If Strcomp(strWebRadioName,arrItems(nPosition)) = 0 Then
+		CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "Web Radio Verification"," The Radio Name '"& strWebRadioName &"' was Displayed","Pass"
+	Else
+		CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "Web Radio Verification"," The Radio Name '"& strWebRadioName &"' was NOT Displayed","Fail"
+	End If
+
+End Sub
+
+'===============================================================
+' Subroutine: FindAppraiserClick
+'===============================================================
+' Subroutine to click the find appraiser link
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub FindAppraiserClick(oPage)
+
+   oPage.Link("Find Appraiser").Click
+
+End Sub
+
+'===============================================================
+' Subroutine: MaintainAppraiserProfileClick
+'===============================================================
+' Subroutine to click the fMaintainAppraiserProfile
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub MaintainAppraiserProfileClick(oPage)
+
+   oPage.Link("Maintain Appraiser Profile").Click
+
+End Sub
+
+'===============================================================
+' Subroutine: MaintainAppraiserSearchClick
+'===============================================================
+' Subroutine to click the  MaintainAppraiserSearch link
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub MaintainAppraiserSearchClick(oPage)
+
+    oPage.Link("Maintain Appraiser Search").Click
+
+End Sub
+
+'===============================================================
+' Subroutine: AppraiserSearchClick
+'===============================================================
+' Subroutine to click the  search for appraiser link
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub AppraiserSearchClick(oPage)
+
+   oPage.Link("Search for Appraiser").Click
+
+End Sub
+
+'===============================================================
+' Subroutine: SelectedAppraiserTypesCriteriaPerform
+'===============================================================
+' Subroutine to perform an action on Selected appraiser type 
+'	Parameters:
+' 	oPage - Page object to be used
+'	oDictSelectedAppraiser - Dictionary object of the selected appraiser
+'   strAction -action to be performed
+'
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub SelectedAppraiserTypesCriteriaPerform(oPage,oDictSelectedAppraiser,strAction)
+
+	'***intializing the required objects
+	Dim oTable
+	Dim oWebCheckbox
+	Dim oItem
+
+'=============================================================
+' Constants: For SelectedAppraiserTypesCriteriaPerform
+'=============================================================
+	Const c_StaffColumn = 1
+	Const c_DriveInColumn = 2
+	Const c_RepairColumn = 1
+	Const c_IAColumn = 2
+	Const c_FirstIndex = 0
+
+'=============================================================
+	'***Setting the appraiser table and coverage table objects
+	Set oTable=oPage.WebTable("SelectedAppraiserTypes")
+	
+	For Each oItem In oDictSelectedAppraiser 
+
+		Select Case UCase(oItem)
+
+			Case "STAFF"
+				'***Setting the respective appraiser object
+				Set oWebCheckbox = WebTableObjectGet(oTable,oDictSelectedAppraiser.Item(oItem),c_StaffColumn,"WebCheckBox",c_FirstIndex,3000)
+					
+			Case "DRIVEIN"
+				'***Setting the respective appraiser object
+				Set oWebCheckbox = WebTableObjectGet(oTable,oDictSelectedAppraiser.Item(oItem),c_DriveInColumn,"WebCheckBox",c_FirstIndex,3000)
+
+			Case "REPAIR"
+				'***Setting the respective appraiser object
+				Set oWebCheckbox = WebTableObjectGet(oTable,oDictSelectedAppraiser.Item(oItem),c_RepairColumn,"WebCheckBox",c_FirstIndex,3000)
+
+			Case "IA"
+				'***Setting the respective appraiser object
+				Set oWebCheckbox = WebTableObjectGet(oTable,oDictSelectedAppraiser.Item(oItem),c_IAColumn,"WebCheckBox",c_FirstIndex,3000)
+					
+			Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.SelectedAppraiserTypesCriteriaVerify","The item '"& oDictSelectedAppraiser.Item(oItem) & "' was NOT present","Fail"
+
+		End Select
+
+		'***Implementing the required operation
+		Call SelectedAppraiserTypesImplement(oWebCheckbox,strAction)
+
+	Next
+
+	'***Clearing the objects
+	Set oTable = Nothing
+	Set oItem = Nothing
+	Set oWebCheckbox = Nothing
+    
+End Sub
+
+'===============================================================
+' Subroutine: SelectedAppraiserTypesImplement
+'===============================================================
+' Subroutine to implement the required action on SelectedAppraiserType
+' 
+'Parameters:
+' 	oWebCheckbox - webcheckbox object of the SelectedAppraiserType
+'	strAction - Action to be performed
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub SelectedAppraiserTypesImplement(oWebCheckbox,strAction)
+
+   Dim nChecked
+
+	Select Case Ucase(strAction)
+                
+		Case "ADD"
+			'***Setting the appraiser check box "ON"
+			oWebCheckbox.Set "ON"
+
+		Case "REMOVE"
+			'***Setting the appraiser check box "OFF"
+			oWebCheckbox.Set "OFF"
+
+		Case "VERIFY"
+			'***Verifying  the appraiser check box defaulted to "ON"
+			nChecked = oWebCheckbox.GetROProperty("checked")
+			If nChecked = 1 Then
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.SelectedAppraiserTypesCriteriaVerify","The item was 'Checked' ","Pass"
+			Else
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.SelectedAppraiserTypesCriteriaVerify","The item was NOT 'Checked' ","Fail"
+			End If
+
+	End Select
+    
+End Sub
+
+'===============================================================
+' Subroutine: ResultSectionPerform
+'===============================================================
+' Subroutine to add members to the newly created team
+' 
+'Parameters:
+'	oPage - Page object to be used
+'	strSections  - Members which needs to be add/remove from the section
+'	strPerformAction- Action to be taken either(ADD,REMOVE,VALIDATE,MOVEUP,MOVEDOWN)
+'    
+' Returns:		 Nothing
+'===============================================================
+Public Sub ResultSectionPerform(oPage,strSections,strPerformAction)
+
+	'***Intializing the required objects
+	Dim oFirstWebList
+	Dim oSecondWebList
+	Dim oRightArrow
+	Dim oLeftArrow
+	Dim oUpArrow
+	Dim oDownArrow
+
+'=============================================================
+' Constants: For ResultSectionPerform
+'=============================================================
+	Const c_NoOfTimes = 4
+
+'=============================================================
+	'***Setting the available section list object to the first list object
+	Set oFirstWebList = oPage.WebList("AvailableSection")
+
+	'***Setting the selected section list object to the first list object
+	Set oSecondWebList = oPage.WebList("SelectedSection")
+
+	'***Setting the add section object to the right arrow object
+	Set oRightArrow = oPage.Image("AddSections")
+
+	'***Setting the remove section object to the left arrow object
+	Set oLeftArrow = oPage.Image("RemoveSections")
+
+	'***Setting the Moveup section object to the up arrow object
+	Set oUpArrow = oPage.Image("ResultSectionMoveUp")
+
+	'***Setting the Movedown section object to the down arrow object
+	Set oDownArrow = oPage.Image("ResultSectionMoveDown")
+
+	Select Case Ucase(strPerformAction)
+
+		Case "ADD"
+			'***Moving the required section memebers from Selected weblist to the available  weblist 
+			Call WebListValuesMove(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"RIGHT",strSections)
+			'***Validating the  section memebers moved from available weblist to the selected  weblist 
+			Call WebListMovedItemsValidate(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"RIGHT",strSections)
+
+		Case "REMOVE"
+			'***Moving the required section memebers from available  weblist to the Selected  weblist 
+			Call WebListValuesMove(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"LEFT",strSections)
+			'***Validating the  team memebers moved from selected  weblist to the available  weblist 
+			Call WebListMovedItemsValidate(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"LEFT",strSections)
+
+		Case "VALIDATE"
+			'***Validating the items in the weblist
+			Call WebListMovedItemsValidate(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"RIGHT",strSections)
+
+		Case "MOVEUP"
+			'***Moving the required section members in the upward direction for specified number of times
+			Call WebListMoveUpDown(oSecondWebList,oUpArrow,strSections,"UP",c_NoOfTimes)
+
+		Case "MOVEDOWN"
+			'***Moving the required section members in the downward direction for specified number of times
+			Call WebListMoveUpDown(oSecondWebList,oDownArrow,strSections,"DOWN",c_NoOfTimes)
+
+		Case Else
+			'*** Error reporting if  inavalid action is specified
+			CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.ResultSectionPerform","The action '" & strPerformAction &  "' is Invalid ","Fail"
+
+	End Select
+
+	'***Clearing the objects
+	Set oFirstWebList = Nothing
+	Set oSecondWebList = Nothing
+	Set oRightArrow  =Nothing
+	Set oLeftArrow = Nothing
+	Set oUpArrow = Nothing
+	Set oDownArrow = Nothing
+
+End Sub
+
+'===============================================================
+' Subroutine: ResultColumnPerform
+'===============================================================
+' Subroutine to add members to the newly created team
+' 
+'Parameters:
+'	oPage - Page object to be used
+'	strColumns  - columns which needs to be add/remove 
+'	strPerformAction- Action to be taken either(ADD,REMOVE,VALIDATE,MOVEUP,MOVEDOWN)
+'    
+' Returns:		 Nothing
+'===============================================================
+Public Sub ResultColumnPerform(oPage,strColumns,strPerformAction)
+
+	'***Intializing the required objects
+	Dim oFirstWebList
+	Dim oSecondWebList
+	Dim oRightArrow
+	Dim oLeftArrow
+	Dim oUpArrow
+	Dim oDownArrow
+
+'=============================================================
+' Constants: For ResultSectionPerform
+'=============================================================
+	Const c_NoOfTimes = 4
+
+'=============================================================
+	'***Setting the available column list object to the first list object
+	Set oFirstWebList = oPage.WebList("AvailableColumns")
+
+	'***Setting the selected column list object to the first list object
+	Set oSecondWebList = oPage.WebList("SelectedColumns")
+
+	'***Setting the add column object to the right arrow object
+	Set oRightArrow = oPage.Image("AddColumns")
+
+	'***Setting the remove column object to the left arrow object
+	Set oLeftArrow = oPage.Image("RemoveColumns")
+
+	'***Setting the moveup column object to the up arrow object
+	Set oUpArrow = oPage.Image("ResultColumnMoveUp")
+
+	'***Setting the movedown column object to the down arrow object
+	Set oDownArrow = oPage.Image("ResultColumnMoveDown")
+
+	Select Case Ucase(strPerformAction)
+
+		Case "ADD"
+			'***Moving the required column memebers from selected weblist to the available  weblist 
+			Call WebListValuesMove(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"RIGHT",strColumns)
+			'***Validating the  team memebers moved from selected weblist to the available  weblist 
+			Call WebListMovedItemsValidate(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"RIGHT",strColumns)
+
+		Case "REMOVE"
+			'***Moving the required column memebers from available  weblist to the selected  weblist 
+			Call WebListValuesMove(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"LEFT",strColumns)
+			'***Validating the  team memebers moved from available  weblist to the selected  weblist 
+			Call WebListMovedItemsValidate(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"LEFT",strColumns)
+
+		Case "VALIDATE"
+			'***Validating the list box
+			Call WebListMovedItemsValidate(oFirstWebList,oSecondWebList,oRightArrow,oLeftArrow,"RIGHT",strColumns)
+
+		Case "MOVEUP"
+			'***Moving the required coulmn members in the upward direction for specified number of times
+			Call WebListMoveUpDown(oSecondWebList,oUpArrow,strColumns,"UP",c_NoOfTimes)
+
+		Case "MOVEDOWN"
+			'***Moving the required coulmn members in the downward direction for specified number of times
+			Call WebListMoveUpDown(oSecondWebList,oDownArrow,strColumns,"DOWN",c_NoOfTimes)
+
+		Case Else
+			'*** Error reporting if  inavalid action is specified
+			CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.ResultColumnPerform","The action '" & strPerformAction &  "' is Invalid ","Fail"
+
+	End Select
+
+	'***Clearing the objects
+	Set oFirstWebList = Nothing
+	Set oSecondWebList = Nothing
+	Set oRightArrow  =Nothing
+	Set oLeftArrow = Nothing
+	Set oUpArrow = Nothing
+	Set oDownArrow = Nothing
+
+End Sub
+
+'===============================================================
+' Subroutine: DefaultCriteriaVerify
+'===============================================================
+' Subroutine to delete the added coverage to avoid duplication
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	oDictDefault - Dictionary object of the default values
+'    
+' Returns:		 Nothing
+' =============================================================== 
+Public Sub DefaultCriteriaVerify(oPage,oDictDefault)
+
+	'***intializing the required objects
+	Dim oTable
+	Dim oWorkLoadTable
+	Dim oWebRadio
+	Dim oItem
+
+'=============================================================
+' Constants: For DefaultCriteriaVerify
+'=============================================================
+	Const c_PrimarySortColumn = 2
+	Const c_WorkFlowColumn = 2
+	Const c_StafftColumn = 2
+	Const c_DriveInColumn = 2
+	Const c_RepairFacilityColumn = 2
+	Const c_IAColumn = 2
+	Const c_FirstIndex = 0
+
+'============================================================
+	'***Setting the appraiser table and coverage table objects
+	Set oTable = oPage.WebTable("MaintainAppraiserSearchPreferences")
+	Set oWorkLoadTable = oPage.WebTable("WorkLoadCapacity")
+
+
+	For Each oItem In oDictDefault 
+
+		Select Case UCase(oItem)
+
+			Case "PRIMARY SORT" 
+				Set oWebRadio = WebTableObjectGet(oTable,oItem,c_PrimarySortColumn,"WebRadioGroup",c_FirstIndex,3000)
+					
+			Case "WORKFLOW" 
+				Set oWebRadio = WebTableObjectGet(oTable,oItem,c_WorkFlowColumn,"WebRadioGroup",c_FirstIndex,3000)
+
+			Case "STAFF"
+				Set oWebRadio = WebTableObjectGet(oWorkLoadTable,oItem,c_StafftColumn,"WebRadioGroup",c_FirstIndex,3000)
+
+			Case "DRIVE-IN"
+				Set oWebRadio = WebTableObjectGet(oWorkLoadTable,oItem,c_DriveInColumn,"WebRadioGroup",c_FirstIndex,3000)
+
+			Case "REPAIR FACILITY"
+				Set oWebRadio = WebTableObjectGet(oWorkLoadTable,oItem,c_RepairFacilitytColumn,"WebRadioGroup",c_FirstIndex,3000)
+
+			Case "INDEPENDENT APPRAISER"
+				Set oWebRadio = WebTableObjectGet(oWorkLoadTable,oItem,c_IAColumn,"WebRadioGroup",c_FirstIndex,3000)
+				
+			Case Else 
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"),"AutoVerseMaintainIC.DefaultCriteriaVerify","The item '"& oDictPrimarySort.Item(oItem) & "' was NOT present","Fail"
+
+		End Select
+
+		Call WebObjectValueCompare(oWebRadio,oDictDefault.Item(oItem))	
+    
+	Next
+
+	'***Clearing the objects
+	Set oTable = Nothing
+	Set oItem = Nothing
+	Set oWebRadio = Nothing
+	Set oWorkLoadTable = Nothing
+    
+End Sub
+
+'===============================================================
+' Subroutine: MaintainAppraiserSubmit
+'===============================================================
+' Subroutine to perform maintain appraiser submit 
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'    
+' Returns:		 Nothing
+' ===============================================================
+Public Sub MaintainAppraiserSubmit(oPage)
+
+  	oPage.WebButton("Submit").Click
+
+End Sub
+
+'===============================================================
+' Subroutine: MaintainAppraiserMessage_Verify
+'===============================================================
+' Subroutine to verify the messages/warnings displayed
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'	strVerifyMessage - Message to be verified
+'    
+' Returns:		 Nothing
+' ===============================================================
+Public Sub MaintainAppraiserMessage_Verify(oPage,strVerifyMessage)
+
+	Dim oWebElement
+	Dim bReturn	
+
+	Set oWebElement=oPage.WebElement("Messages")
+	bReturn=WebElementValue_Compare(oWebElement,strVerifyMessage,3000)
+	'***Log report
+	Call resultLogger(oWebElement, bReturn, strVerifyMessage,"AutoverseMaintainIC.MaintainAppraiserMessage_Verify")
+
+	Set oWebElement = Nothing
+
+End Sub
+
+'===============================================================
+' Subroutine: DefaultedAppraiserCriteria_Verify
+'===============================================================
+' Subroutine to verify the defaulted appraiser only gets displayed
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'   strDefaultedCheckBoxName - Defaulted appraiser web checkbox name
+'
+' Returns:		 Nothing
+' ===============================================================
+Public Sub DefaultedAppraiserCriteria_Verify(oPage,strDefaultedCheckBoxName)
+
+	Dim oWebCheckBox
+
+	Set oWebCheckBox = oPage.WebCheckBox("AppraiserTypes")
+
+	Call WebObjectValueCompare(oWebCheckBox,strDefaultedCheckBoxName)
+
+	'***Clearing the objects
+	Set oWebCheckBox = Nothing
+        
+End Sub
+
+'===============================================================
+' Subroutine: AppraiserSetAndSearchByZip
+'===============================================================
+' Subroutine to verify the defaulted appraiser only gets displayed
+' 
+'Parameters:
+' 	oPage - Page object to be used
+'   strZipCode - Zipcode of the appraiser
+'
+' Returns:		 Nothing
+' ===============================================================
+Public Sub AppraiserSetAndSearchByZip(oPage,strZipCode)
+
+    oPage.WebEdit("postalCode").Set strZipCode
+
+	oPage.WebButton("Find Appraiser").Click
+    
+End Sub
+
+'**************************************************************************************************************************************************************************************
+'End of the script
+'**************************************************************************************************************************************************************************************
+

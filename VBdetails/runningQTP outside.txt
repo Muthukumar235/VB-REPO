@@ -1,0 +1,57 @@
+scrFolderpath = "D:\Framework_MAPSII\TEST SCRIPTS\MainScript"
+sGenericPath="D:\Framework_MAPSII\LIB\Genericfunctions.vbs"
+sProjPath="D:\Framework_MAPSII\LIB\Mapsfunctions_latest.vbs"
+sSupportPath="D:\Framework_MAPSII\LIB\Library1.vbs"
+sResult = "D:\Framework_MAPSII\Result\"
+
+sTime = Year(Date)&"_"&Month(Date)&"_"&Day(Date)&"_"&Hour(Time)&"_"&minute(time)&"_"&second(time)
+sFolderName = "LastRunResults_"&sTime 
+
+spath = sResult & sFolderName
+
+Set FSO = CreateObject("Scripting.FileSystemObject")
+FSO.CreateFolder spath
+
+
+'To Launch the QTP
+Set App = CreateObject("QuickTest.Application")
+App.Visible = True
+
+'To Activate the Add-Ins
+sAddIns = Array("web")
+App.SetActiveAddins(sAddIns)
+App.Launch
+
+
+
+
+'Global Settings
+App.Options.Run.RunMode = "Fast"
+App.Options.Run.ViewResults = False
+App.Options.Run.ImageCaptureForTestResults = "OnError"
+
+App.open scrFolderpath 
+
+
+Set qtLib = App.Test.Settings.Resources.Libraries
+qtlib.RemoveAll
+qtlib.Add sGenericPath
+qtlib.Add sProjPath
+qtlib.Add  sSupportPath 
+
+		
+App.Test.Save
+
+
+Set qtResultsOpt = CreateObject("QuickTest.RunResultsOptions") 
+qtResultsOpt.ResultsLocation = spath
+App.Test.Run qtResultsOpt 
+
+
+App.Quit
+
+'To Deallocate the memory of the object
+Set qtLib = Nothing
+Set qtResultsOpt = nothing
+Set FSO = Nothing
+Set App = Nothing

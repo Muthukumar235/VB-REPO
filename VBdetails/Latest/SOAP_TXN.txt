@@ -1,0 +1,36 @@
+Dim servicename
+Dim sWebServiceURL, sContentType, sSOAPAction, sSOAPRequest
+Dim oDom, oXmlHttp
+Dim sResponse
+servicename="callIVR"
+sWebServiceURL ="http://10.22.1.137:8080/cms/CMSIVRProcessImpl?WSDL"
+'sContentType ="XML" 'Web Service Content Type
+'sSOAPAction = "http://auth.org" &  servicename
+'Request Body
+sSOAPRequest =QTPvalue
+'Create objects to DOMDocument and XMLHTTP
+Set oDom = CreateObject("Microsoft.XMLDOM")
+Set oXmlHttp = CreateObject("Microsoft.XMLHTTP")
+'Load XML
+oDom.async = False
+oDom.loadXML sSOAPRequest
+'Open the webservice
+oXmlHttp.open "POST", sWebServiceURL,False,"CMSAuth","password"
+
+''Create headings
+'oXmlHttp.setRequestHeader "Content-Type", sContentType
+'oXmlHttp.setRequestHeader "SOAPAction", sSOAPAction
+'Send XML command
+oXmlHttp.send oDom.xml
+'Get XML Response
+sResponse = oXmlHttp.responseText
+'Close object
+Set oXmlHttp = Nothing
+Dim objFSO,outFile,objFile
+Set objFSO=CreateObject("Scripting.FileSystemObject")
+'How to write file
+outFile="C:\Response.xml" 'this should be the path of the output file.
+Set objFile = objFSO.CreateTextFile(outFile,True)
+objFile.Write sResponse
+objFile.Close
+'End Function

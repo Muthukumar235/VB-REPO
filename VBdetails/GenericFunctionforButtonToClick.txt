@@ -1,0 +1,54 @@
+ogfile_path="C:\MAPS"
+resultfile_path="C:\MAPS"
+
+Set btn=browser("Welcome to adrenalin").Page("Welcome to adrenalin").WebButton("Login")
+Call Button_Click( btn,logfile_path,resultfile_path )
+
+Function Button_Click( ObjButton,logfile_path,resultfile_path )
+   ObjName = ObjButton.ToString
+   bButtonExist = ObjButton.Exist(0)
+   If   Not   bButtonExist Then
+				  Call WriteResult(ObjName  &  Space (4)  & "not  exist","Fail",logfile_path,resultfile_path,"")
+                  'Msgbox    ObjName  &  Space (4)  & "not  exist"
+                  Exit  Function
+   End If
+   bButtonDisabled = ObjButton.GetROProperty("disabled")
+   If bButtonDisabled Then
+	                            Call WriteResult(ObjName  &  Space (5)  & "is  disabled","Fail",logfile_path,resultfile_path,"")
+                                'Msgbox    ObjName  &  Space (5)  & "is  disabled"
+                                Exit  Function
+   End If
+   ObjButton.Click
+   Call WriteResult(ObjName  &  " is  successfully clicked ","Pass",logfile_path,resultfile_path,"")
+   'Msgbox   ObjName  &  " is  successfully clicked " 
+End Function 
+
+
+
+
+
+
+Call Generic_webEdit("txtUserCode",0,"abc")
+
+Function Generic_webEdit(WebEditName,Indexvalue,WebEditValue)
+   Set WebEditObject=Description.Create()
+   WebEditObject("name").value=WebEditName
+   WebEditObject("html tag").value="INPUT"
+   WebEditObject("index").value=Indexvalue
+
+browser("title:=([A-Z]|[a-z]|).*").Page("title:=([A-Z]|[a-z]|).*").WebEdit(WebEditObject).Set WebEditValue
+   
+End Function
+
+
+Call Generic_webCheckbox("ChkParent",0,"ON")
+
+Function Generic_webCheckbox(WebCheckBoxName,Indexvalue,WebCheckBoxValue)
+   Set WebCheckBoxObject=Description.Create()
+   WebCheckBoxObject("name").value=WebCheckBoxName
+   WebCheckBoxObject("html tag").value="INPUT"
+   WebCheckBoxObject("index").value=Indexvalue
+
+browser("title:=([A-Z]|[a-z]|).*").Page("title:=([A-Z]|[a-z]|).*").WebCheckBox(WebCheckBoxObject).Set WebCheckBoxValue
+   
+End Function

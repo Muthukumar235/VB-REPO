@@ -1,0 +1,13 @@
+Set g=Description.Create
+g("micclass").value="Link"
+g("html id").Value="selectedmtype-button"
+
+Browser(":=").Page(":=").ChildObjects(g)(0).Click
+
+
+'Browser(":=").Page(":=").Link("html id:=selectSearchBy-button").Click
+'Set ob=CreateObject("Wscript.Shell")
+Set ob=CreateObject("Mercury.DeviceReplay")
+ob.SendString "{REAJAK}"
+Set ob1=CreateObject("Mercury.DeviceReplay")
+ob1.PressKey(28)

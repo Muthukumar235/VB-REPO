@@ -1,0 +1,31 @@
+select MGP_PARM_VALU from MPS_GENR_PARM_MAST where MGP_PARM_KEY in ('9','10','11','12','13','14','19', '20', '21', '22')
+
+To Encrypt the Data:
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('fss') where MGP_PARM_KEY='19'
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('10.44.66.39') where MGP_PARM_KEY='20'
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('gnanaprakashp') where MGP_PARM_KEY='21'
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('D4ntask') where MGP_PARM_KEY='22'
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('ldap://10.44.88.32:389') where MGP_PARM_KEY='9'
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('cn=Admin,dc=mapscore') where MGP_PARM_KEY='10';
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('secret') where MGP_PARM_KEY='11'
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('dc=mapscore') where MGP_PARM_KEY='12'
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('ou=groups,ou=mss') where MGP_PARM_KEY='13'
+
+
+update MPS_GENR_PARM_MAST  set MGP_PARM_VALU=cx_df_ne('ou=people,ou=mss') where MGP_PARM_KEY='14'
+
+
+
+
+To Decrypt the Data:
+
+select cx_df_ed('encrypted value place here') from table name

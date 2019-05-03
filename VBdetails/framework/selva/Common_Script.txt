@@ -1,0 +1,98 @@
+
+
+        Common_Framework Script
+
+
+
+'**************************************************************************************************************************************************************************************************************************************
+' Script:  CF_InternetBrowser.qfl
+'
+' This qfl file can be used for Internet Explorer browser functionalities
+' 
+' Author: Cognizant
+'	
+'
+' Purpose: To handle Browser related functionalities 
+'	 
+' 
+' Modified:
+'	
+'**************************************************************************************************************************************************************************************************************************************
+Option Explicit '***Forcing Variable declarations
+
+'=====================================================================================================================================================================
+' Subroutine: Browser_Launch
+'=====================================================================================================================================================================
+' This Subroutine will open Internet Explorer and launch the application URL
+'
+' Parameters:    
+'							strPortalURL- URL of the Application
+'
+' Returns:   	Nothing
+' =====================================================================================================================================================================
+Public Sub  Browser_Launch(strPortalURL)
+
+	Dim strOSName 
+
+    strOSName = Trim (Environment.Value("OS"))
+	If strOSName =  "Microsoft Windows 7" Or strOSName = "Microsoft Windows 7 Workstation" Then
+		Systemutil.Run  "C:\Program Files (x86)\Internet Explorer\iexplore.exe",strPortalURL		
+	Else 
+		Systemutil.Run "C:\Program Files\Internet Explorer\IEXPLORE.EXE",strPortalURL		
+	End If	
+
+End Sub
+
+'=====================================================================================================================================================================
+' Subroutine: CloseBrowser
+'=====================================================================================================================================================================
+' This Subroutine closes all the opened browsers
+' Parameters:     	None
+'
+' Returns :     		Nothing
+' =====================================================================================================================================================================
+Public Sub CloseBrowser()
+
+	Systemutil.CloseProcessByName "iexplore.exe"
+
+End Sub
+
+'=====================================================================================================================================================================
+' Subroutine: CertificateError
+'=====================================================================================================================================================================
+' This Subroutine closes the Certificate Error page
+'
+' Parameters:    
+'							nWaitTimeInMilliSeconds - Millisecond to Wait
+
+'
+' Returns: 	Nothing
+' =====================================================================================================================================================================
+Public Sub CertificateError(nWaitTimeInMilliSeconds)
+
+	If Browser("Certificate Error: Navigation").Page("Certificate Error: Navigation").WaitProperty("visible","True",nWaitTimeInMilliSeconds) then		
+		Browser("Certificate Error: Navigation").Page("Certificate Error: Navigation").Link("Continue to this website").Click		
+	End If
+
+End Sub
+
+'=====================================================================================================================================================================
+' Subroutine: CloseActiveBrowser
+'=====================================================================================================================================================================
+' This Subroutine is to close the currently open browser
+'
+' Parameters:     
+'							nCreationTime -  Creation time of the browser
+'
+' Returns :     		Nothing
+'=====================================================================================================================================================================
+Public Sub CloseActiveBrowser(nCreationTime)
+	
+	Browser("CreationTime:="&nCreationTime).Close
+
+End Sub
+
+'******************************************************************************************************************************************************************************************************************************************
+' End of the Script
+'******************************************************************************************************************************************************************************************************************************************
+

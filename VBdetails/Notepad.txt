@@ -1,0 +1,81 @@
+
+To check the folder whether all the files present or not 
+To check the folder whether any new files added or not
+---------------------------------------------------------
+
+set ob=createobject("Scripting.FileSystemObject")
+set fol=ob.getfolder("  ")
+set fil=fol.getfiles()
+a=0,b=0,c=0,d=0
+
+For each nfil in fil
+filname=nfil.name
+if filname="notepad1" then
+a=1
+Elseif filname="notepad2" then
+b=1
+Elseif filname="word1" then
+c=1
+Elseif filname="word2" then
+d=1
+Else
+msgbox filname&" "&"newly added in the folder"
+End if
+Next
+
+
+if a=0 then
+msgbox "notepad1 is deleted in the folder"
+End if
+if b=0 then
+msgbox "notepad2 is deleted in the folder"
+End if
+if c=0 then
+msgbox "word1 is deleted in the folder"
+End if
+if d=0 then
+msgbox "word2 is deleted in the folder"
+End if
+
+
+
+--------------------------------------------------------
+To add some data in empty notepad
+.....................................
+
+set ob=createobject("Scripting.FileSystemObject")
+set op=ob.opentextfile("   .txt",2)
+op.writeline("selva is a good boy")
+op.writeline("Poli is a bad boy")
+op.writeline("Iam a boss")
+set op=nothing()
+set ob=nothing()
+
+----------------------------------------------------------
+
+To read a data from the Notepad
+..........................................
+
+set ob=createobject("Scripting.FileSystemObject")
+set op=ob.opentextfile("   .txt",1)
+while op.atendofline <> true
+a=op.readline
+print a
+wend
+set op=nothing()
+set ob=nothing()
+
+------------------------------------------------------------
+
+To overwrite a data in the Notepad
+...........................................
+
+set ob=createobject("Scripting.FileSystemObject")
+set op=ob.opentextfile("  .txt",8)
+op.writeline("Iam a boss")
+op.writeline("Poli is a bad boy")
+op.writeline("selva is a good boy")
+set op=nothing()
+set ob=nothing()
+
+------------------------------------------------------------

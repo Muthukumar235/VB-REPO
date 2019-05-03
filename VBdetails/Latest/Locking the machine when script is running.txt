@@ -1,0 +1,15 @@
+QTP is providing a solution to lock and unlock machine when script is running.
+
+SystemUtil.BlockInput 
+This statement will block the user input from key board or mouse.
+
+SystemUtil.UnblockInput
+After executing this statement you may enter user input.
+
+How to use these statements?
+
+In starting of the script use SystemUtil.BlockInput, at end of the script use SystemUtil.UnblockInput.
+
+So that QTP will lock and unlock machine in script running.
+
+You don't see the locked screen on your machine after executing SystemUtil.BlockInput. The same screen will be there but it don't accept any user input.

@@ -1,0 +1,52 @@
+Public Admin,Merchant
+
+
+Function GetRCFromDriver(StrDriverpath)
+Datatable.import StrDriverpath&"\ModulesSheet.xls"
+GetRCFromDriver=datatable.getrowcount
+End Function
+
+public  ModuleName, StartTestCase, EndTestCase,ExecutionStatus,Repository, SubMenuName
+Function ReadFromDriver(ScreenNo)
+ datatable.SetCurrentRow(ScreenNo)
+ ModuleName=datatable.value("ModuleName")
+ SubMenuName=datatable.Value("SubMenuName")
+StartTestCase=datatable.value("StartTestCase")
+EndTestCase=datatable.value("EndTestCase")	
+ExecutionStatus=datatable.value("ExecutionStatus")
+End Function
+
+
+Function LoadOR(Repository)
+'msgbox  Repository
+a=Repositoriescollection.find (Repository)
+If a<0  Then
+	Repositoriescollection.add Repository
+'Else
+'Print "Already OR Exist"
+End if
+End Function
+
+Function LoadLibray(vbsfilename)
+'   msgbox  vbsfilename
+ ExecuteFile vbsfilename
+End Function
+
+Function UnLoadOR(Repository)
+   pos=RepositoriesCollection.Find(Repository)
+   If pos > 0 Then
+	   RepositoriesCollection.Remove(pos)
+	   Else
+    End If
+End Function	
+
+Function Kill_Excel()
+ set winobj = getobject("winmgmts:")
+que = "select * from win32_process where name = 'EXCEL.EXE'"
+set resultobj = winobj.execquery(que)
+for each processobj in resultobj
+   processobj.terminate(1)
+Next
+set winobj =nothing
+set resultobj = nothing
+   End Function

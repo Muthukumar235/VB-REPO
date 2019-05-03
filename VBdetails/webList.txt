@@ -1,0 +1,34 @@
+To Check whether all the items listed in WebList or not:
+
+----------------------------------------------------------
+
+itecnt=browser(browsername).page(pagename).weblist(Weblistname).getItemsCount
+a=0,b=0,c=0,d=0
+for i=0 to itecnt-1
+oneite=browser(browsername).page(Pagename).weblist(Weblistname).getItem(i)
+if oneite="telephone" then
+a=1
+Else if oneite="E-mail" then
+b=1
+Elseif oneite="post" then
+c=1
+Elseif oneite="others" then
+d=1
+Else
+print "oneite"&" "&"newly displayed in the dropdown"
+End if 
+Next
+
+if a=0 then
+print "telephone is not found"
+end if
+if b=0 then
+print "E-mail is not found"
+End if
+if c=0 then
+print "Post is not found"
+End if
+if d=0 then
+print "others is not found"
+End if
+

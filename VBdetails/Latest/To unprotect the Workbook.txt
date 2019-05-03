@@ -1,0 +1,21 @@
+testData="D:\selva3.xls"
+pwd="selva"
+writeresPwd="selva"
+Set objExcel=CreateObject("Excel.Application")
+
+   objExcel.Visible=false
+' Set myWkbook=objExcel.Workbooks.open(testData)
+Set myWkbook=objExcel.Workbooks.open(testData,0,False,5,pwd,writeresPwd)
+Set Firstsheet=myWkbook.sheets("Action1")
+
+
+Firstsheet.cells(1,3).value=testData
+a=Firstsheet.cells(1,3).value
+msgbox a
+'	 myWkbook.SaveAs testData, ,"",""
+
+myWkbook.Save
+objExcel.Quit
+  Set myWkbook=nothing
+ Set Firstsheet=nothing
+ Set objExcel=Nothing

@@ -1,0 +1,340 @@
+'********************************************************************************************
+
+
+'--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'Name		 : Generic Functions For  all  modules
+'
+'Description	 :	
+							
+'
+'Created By	 :    Gopinathan.D   
+'
+'date created	 :	 
+'
+'Application	 : MAPS
+'
+'Reviewed by	 :
+'
+'Review date	 :
+'
+'Review note	 : 
+'------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+		
+Function Select_List(oList,sItemToSelect,logfile_path, resultfile_path)
+   Flag = 0
+     ObjName = oList.ToString
+   bListExist = oList.Exist(1)
+   If   Not  bListExist Then
+                                call WriteResult(ObjName  &  Space (4)  & "not  exist","Fail",logfile_path,resultfile_path,"")
+                                Exit  Function
+   End If
+    bListDiabled = oList.GetROProperty("disabled")
+                If  bListDiabled Then
+					            call WriteResult(ObjName  &  Space (5)  & "is  disabled","Fail",logfile_path,resultfile_path,"")                                     
+                                Exit  Function
+                End If
+
+   ListItems = oList.GetROProperty("all items")
+   ListArr = Split(ListItems,";")
+   'msgbox (ubound(ListArr))
+   For i= 0 to ubound(ListArr)
+	   StrListElement = ListArr(i)
+	   If  Trim(StrListElement) =trim(sItemToSelect)Then
+		   Flag = 1
+		   Exit for
+	   End If
+   Next
+   If Flag = 1 Then
+	   	  msg = sItemToSelect&" ---> is found and selecting"
+		  'reporter.ReportEvent micPass,"List",msg
+		  'msgbox msg
+		  WriteResult msg,"Pass",logfile_path,resultfile_path,""
+'	      oList.Select sItemToSelect
+		  oList.Select   StrListElement
+		  Flag = 0
+	   else
+	  		msg = sItemToSelect & "--->  is not found in the list"
+			'reporter.ReportEvent micFail,"List",msg
+			WriteResult msg,"Fail",logfile_path,resultfile_path,""
+			'msgbox msg
+   End If
+End Function
+
+'***********************************************************************************
+Function xl_pass(msg,status,resultfile_path) 
+  
+   Set xlap = createobject("Excel.application")
+   Set wbook_res = xlap.Workbooks.Open(resultfile_path)
+   Set wsheet_res = xlap.Worksheets(1)
+   rc = wsheet_res.usedrange.rows.count + 1 
+  wsheet_res.cells(rc,1).value = msg
+  wsheet_res.cells(rc,2).value = status
+  'rc = wsheet.usedrange.rows.count 
+  wbook_res.Save
+  xlap.Quit
+  
+  Set wbook_res = nothing
+  Set wsheet_res = nothing
+  Set xlap = nothing
+' msgbox result_fold 
+    
+End Function
+
+'**************************************************************************************
+
+Function Write_Log(Msg,logfile_path)
+   
+   Set fso =createobject("Scripting.FileSystemObject")
+   Set f = fso.OpenTextFile (logfile_path,8,true)
+   f.writeline now&"----->"&Msg
+   f.Close
+
+End Function
+
+'**********************************************************************************************************
+Function    GetResultFolderPath  (StrResultFilePath , StrFileType)
+                                
+                                strDate = Date
+                                strNow = Now
+                                strTimeStamp = Now
+
+                                LogFolderPath = StrResultFilePath  & "\"  & Replace(strDate,"/","-")   	
+								ResultFold = 		LogFolderPath & "\" & "Test Result"
+								ResultLog =         LogFolderPath &  "\" & "Test Log"
+                                Set LogFolder  = createobject("Scripting.FileSystemObject")
+
+                                  If Not LogFolder.FolderExists(LogFolderPath) Then 
+                                                   Set DateFolder = LogFolder.CreateFolder(LogFolderPath)
+													LogFolder.CreateFolder(ResultFold)
+													LogFolder.CreateFolder(ResultLog)
+
+                                End if
+                                If  Trim( UCase(StrFileType))       =             "RESULTFILE"   Then
+                                                                StrResultFilePath = ResultLog &"\" &  "result-"           
+                                Else If  Trim( UCase(StrFileType))              =             "LOGFILE"   Then
+                                                                StrResultFilePath = ResultLog &"\" &  "log-"   
+                                End  If 
+
+                                End If                                                
+                                Set LogFolder = Nothing
+                                Set DateFolder = Nothing
+                                GetResultFolderPath     =            StrResultFilePath
+                                                
+End Function
+
+'**********************************************************************************************************
+
+''''''''''''''''''Function to Kill Excel''''''''''''''''''''''''
+Function Kill_Excel()
+ set winobj = getobject("winmgmts:")
+que = "select * from win32_process where name = 'EXCEL.EXE'"
+set resultobj = winobj.execquery(que)
+for each processobj in resultobj
+   processobj.terminate(1)
+Next
+set winobj =nothing
+set resultobj = nothing
+   End Function
+'**********************************************************************************************************
+
+''''''''''''''''''Function to IE'''''''''''''''''''''''
+Function Kill_IE()
+ set winobj = getobject("winmgmts:")
+que = "select * from win32_process where name = 'IEXPLORE.EXE'"
+set resultobj = winobj.execquery(que)
+for each processobj in resultobj
+   processobj.terminate(1)
+Next
+set winobj =nothing
+set resultobj = nothing
+   End Function
+
+'*********************************************************************************************************
+
+'*********************************************************************************************************
+ 
+Function  iELS_TakeScreenShot   (StrFilePath)   
+                Desktop.CaptureBitmap  StrFilePath , True
+End Function
+
+'********************************************************************************************************
+Function Write_LogHeader  (StrTS  ,  logfile_path)
+
+                                                                Set fso =createobject("Scripting.FileSystemObject")
+                                                                Set f = fso.OpenTextFile (logfile_path  ,8,true)
+                                                                f.WriteLine    String  ( 150 ,  "-"   ) & Vbnewline 
+                                                                f.WriteLine  "Now  executing  :    "  &  StrTS
+                                                                f.Close
+
+End Function
+
+
+'**********************************************************************************************************
+ 
+Function   WriteResult  ( StrMsg , StrStatus , StrLogPath, StrResultPath, StrScreenShotName)
+   Write_Log  Strmsg , StrLogPath
+   xl_pass  Strmsg , StrStatus , StrResultPath
+   If   Ucase(StrStatus)     =             "PASS" OR StrStatus = "" Then
+                
+                   If   StrScreenShotName  <>  ""    Then
+                                                Reporter.ReportEvent micPass, StrStatus ,StrMsg , StrScreenShotName
+                                                'Msgbox  StrScreenShotName
+                                Else
+                                                Reporter.ReportEvent micPass, StrStatus ,StrMsg
+                   End If
+   End If
+
+    If   Ucase(StrStatus)    =             "FAIL"  Then
+                   If   StrScreenShotName  <>  ""   Then
+                                                Reporter.ReportEvent micFail, StrStatus ,StrMsg , StrScreenShotName
+                   Else
+                                                Reporter.ReportEvent  micFail, StrStatus ,StrMsg 
+                   End If
+   End If
+
+
+End Function
+
+'********************************************************************************
+Function Button_Click( ObjButton,logfile_path,resultfile_path )
+   ObjName = ObjButton.ToString
+   bButtonExist = ObjButton.Exist(0)
+   If   Not   bButtonExist Then
+				  Call WriteResult(ObjName  &  Space (4)  & "not  exist","Fail",logfile_path,resultfile_path,"")
+                  'Msgbox    ObjName  &  Space (4)  & "not  exist"
+                  Exit  Function
+   End If
+   bButtonDisabled = ObjButton.GetROProperty("disabled")
+   If bButtonDisabled Then
+	                            Call WriteResult(ObjName  &  Space (5)  & "is  disabled","Fail",logfile_path,resultfile_path,"")
+                                'Msgbox    ObjName  &  Space (5)  & "is  disabled"
+                                Exit  Function
+   End If
+   ObjButton.Click
+   Call WriteResult(ObjName  &  " is  successfully clicked ","Pass",logfile_path,resultfile_path,"")
+   'Msgbox   ObjName  &  " is  successfully clicked " 
+End Function 
+
+'*********************************************************************************
+Function Edit_Set     (ObjEdit  ,   StrValue,logfile_path,resultfile_path)
+
+   ObjName = ObjEdit.ToString
+   bEditBoxExist = ObjEdit.Exist(3)
+   If   Not   bEditBoxExist  Then
+	                            call WriteResult(ObjName  &  Space (4)  & "not  exist","Fail",logfile_path,resultfile_path,"")
+                                'Msgbox    ObjName  &  Space (4)  & "not  exist"
+                                Exit   Function 
+   End If
+
+   bEditBoxDisabled = ObjEdit.GetROProperty("disabled")
+   If  bEditBoxDisabled Then
+	               call WriteResult(ObjName  &  Space (5)  & "is  disabled","Fail",logfile_path,resultfile_path,"")
+                   'Msgbox    ObjName  &  Space (5)  & "is  disabled"
+                   Exit  Function
+   End If
+
+                ObjEdit.Set   StrValue
+                Wait  2
+                StrValueFromEditBox  =  ObjEdit.GetRoProperty ("value")
+
+                If    Trim(StrValue)   =  Trim(StrValueFromEditBox) Then
+					            call WriteResult(StrValue  &  Space (4)   & "--->is  successfully set  into " & Space (4) & ObjName,"Pass",logfile_path,resultfile_path,"")
+                                'Msgbox   StrValue  &  Space (4)   & "is  successfully set  into " & Space (4) & ObjName
+                End If
+
+End Function
+
+'***********************************************************************************
+'Function name:Result
+'Function to write the result
+'***********************************************************************************
+Function Result(resultfile_path,logfile_path,TestScriptID)
+   Set fso = createobject("Scripting.FileSystemObject")
+  
+If (fso.fileexists(resultfile_path)) Then
+   Set xl_r = createobject("Excel.application")
+   Set wbook_r = xl_r.Workbooks.Open(resultfile_path)
+   Set wsheet_r = xl_r.Worksheets(1)
+   rc = wsheet_r.usedrange.rows.count + 1
+   wsheet_r.cells(rc,1).value = TestScriptID
+   wsheet_r.cells(rc,1).interior.colorindex  = 4
+   wbook_r.Save
+   xl_r.Quit
+   
+   Set wsheet_r = nothing
+   Set wbook_r = nothing
+   Set xl_r = nothing
+
+ else
+	   Set res_xl = createobject("Excel.application")
+	   Set result_book = res_xl.Workbooks.ADD
+	   Set result_sheet = res_xl.Worksheets(1)
+	   result_sheet.cells(1,1).value = "RESULT SHEET"
+	   dt = replace(replace(now,"/","_"),":","_")
+	
+		resultfile_path = resultfile_path&dt & ".xls"
+		logfile_path = logfile_path & dt & ".txt"
+		
+	    result_book.Saveas resultfile_path
+	    res_xl.Quit
+	Set result_book = nothing
+	Set result_sheet = nothing
+	Set res_xl=nothing
+End If
+Set fso = nothing
+End Function
+
+'****************************************************************
+'**********Function to save each time a screen shot*************
+'****************************************************************
+Function ScreenShotPathChange(ScreenShotPath)
+   'Set fso = createobject("Scripting.FileSystemObject")
+   arr = split(ScreenShotPath,".")
+   Screen_dt = replace(replace(now,"/","_"),":","_")
+   ScreenShotPath = arr(0)&Screen_dt&"."&arr(1)
+   'ScreenShotPath = arr(0)&ScreenShotNumber&"."&arr(1)
+   ScreenShotNumber = ScreenShotNumber + 1
+  ScreenShotPathChange = ScreenShotPath
+End Function
+'****************************************************************
+'**********Function to Write the haeder part inthe result*************
+'****************************************************************
+
+Function WriteHeadersNResult(resultfile_path,LocalHostName,OSName,OsVersion,ProductName,ProductVersion,TestName,UserName)
+      
+   Set ResultHeader = createobject("Excel.Application")
+   Set ResultHeaderwbook = ResultHeader.Workbooks.Open(resultfile_path)
+   Set ResultHeaderwsheet = ResultHeader.Worksheets(1)
+   rc = ResultHeaderwsheet.usedrange.rows.count + 1
+ 
+   ResultHeaderwsheet.cells(2,1).value = "Local Host Name:            " & LocalHostName
+   ResultHeaderwsheet.cells(3,1).value = "OperatingSystem Name:  " & OSName
+   ResultHeaderwsheet.cells(4,1).value = "OS Version:                       " & OsVersion
+   ResultHeaderwsheet.cells(5,1).value = "Product Name:                  " & ProductName
+   ResultHeaderwsheet.cells(6,1).value = "Product Version:                " & ProductVersion
+   ResultHeaderwsheet.cells(7,1).value = "Test  Name:                       " & TestName
+   ResultHeaderwsheet.cells(8,1).value = "User Name:                       " & UserName
+   'ResultHeaderwsheet.cells(rc,1).interior.colorindex  = 4
+   ResultHeaderwbook.Save
+   ResultHeader.Quit
+   
+   Set ResultHeaderwsheet = nothing
+   Set ResultHeaderwbook = nothing
+   Set ResultHeader = nothing
+
+End Function
+
+'**************************************************************************************************************************
+
+
+
+
+
+Function WriteResult_Log(Msg,Status,logfile_path)
+   
+   Set fsolog =createobject("Scripting.FileSystemObject")
+   Set fres = fsolog.OpenTextFile (logfile_path,8,true)
+   fres.writeline now&"----->"&Msg&"----->"&Status
+   fres.Close
+
+End Function

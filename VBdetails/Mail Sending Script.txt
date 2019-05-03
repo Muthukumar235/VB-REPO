@@ -1,0 +1,16 @@
+Call SendMail("selvakumarg@fss.co.in","test mail from QTP","Hai, Good Morning to all","C:\Documents and Settings\selvakumarg\Desktop\5.JPG")
+
+Function SendMail(SendTo, Subject, Body, Attachment)
+    Set ol=CreateObject("Outlook.Application")
+    Set Mail=ol.CreateItem(0)
+    Mail.to=SendTo
+    Mail.Subject=Subject
+    Mail.Body=Body
+    If (Attachment <> "") Then
+        Mail.Attachments.Add(Attachment)
+    End If
+	systemutil.Run "c:\windows\system32\wscript.exe", "D:\MainSendingRecovery.vbs"
+    Mail.Send
+    Set Mail = Nothing
+    Set ol = Nothing
+End Function

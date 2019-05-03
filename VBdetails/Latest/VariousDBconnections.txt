@@ -1,0 +1,173 @@
+Connecting Excel As DB,Code Desc ribes about connection only.
+------------------------------------------------------------------------
+
+strMappingSheet ="MerchantSales"
+Fn_str_DataPath = "D:\MAPSTEST.xls"
+'------------------------------------------------------------------------
+'Fn_str_CDPymtMapstrConnection = "Driver={Microsoft Excel Driver (*.xls)};DBQ="&Fn_str_DataPath&";ReadOnly=True;"
+'or
+Fn_str_CDPymtMapstrConnection = "DSN=Excel Files"
+'------------------------------------------------------------------------
+Set oConn = CreateObject("ADODB.Connection")
+oconn.open Fn_str_CDPymtMapstrConnection
+
+Set rs=oConn.Execute("select * from ["&strMappingSheet&"$]")
+
+fieldcnt=rs.fields.count
+
+
+
+fieldnames=""
+
+For i=0 to fieldcnt-1
+	fname=rs.fields(i).name
+
+	Fieldnames=fieldnames&vbtab&fname
+Next
+
+Print Fieldnames
+
+
+While rs.eof <>true
+	records=""
+	For j=0 to fieldcnt-1
+		cellvalue=rs(j)
+		records=records&vbtab&cellvalue
+	Next
+	print records
+	rs.movenext
+Wend
+
+
+------------------------------------------------------------------------
+Connecting Text As DB,Code Desc ribes about connection only.
+------------------------------------------------------------------------
+
+Set oConn = CreateObject("ADODB.Connection")
+sPath = "D:\" : sFile = "testing.txt"
+------------------------------------------------------------------------
+oConn.Open "Provider=Microsoft.Jet.OLEDB.4.0;" & "Data Source=" & sPath & ";" & "Extended Properties=""text;HDR=YES;FMT=Delimited"""
+
+or
+
+oConn.Open "DSN=Text File"
+------------------------------------------------------------------------
+Set rs=oConn.Execute("select * from ["&sFile&"]")
+
+fieldcnt=rs.fields.count
+
+fieldnames=""
+
+For i=0 to fieldcnt-1
+	fname=rs.fields(i).name
+
+	Fieldnames=fieldnames&vbtab&fname
+Next
+
+Print Fieldnames
+
+
+While rs.eof <>true
+	records=""
+	For j=0 to fieldcnt-1
+		cellvalue=rs(j)
+		records=records&vbtab&cellvalue
+	Next
+	print records
+	rs.movenext
+Wend
+
+------------------------------------------------------------------------
+
+
+
+
+
+
+Connecting MS access as DB, Desc ribes about connection only.
+------------------------------------------------------------------------
+
+' Create the Connection Object.
+Set cnBiblio = CreateObject("ADODB.Connection") 
+------------------------------------------------------------------------
+' Set the Connection String.
+
+cnBiblio.ConnectionString = "DSN= "
+cnBiblio.Open
+
+or 
+ConnectionStr= "DSN= ;DBQ=C:\flight32.mdb;DriverId=281;FIL=MS Access;MaxBufferSize=2048;PageTimeout=5;"
+
+cnBiblio.open ConnectionStr
+
+or
+
+ConnectionStr="Driver={Microsoft Access Driver (*.mdb)};DBQ="&Database Name&";ReadOnly=True"
+
+------------------------------------------------------------------------
+Set rcRecordSet= cnBiblio.Execute("SELECT Flight_Number, Order_Number, Customer_Name from Orders")
+
+
+
+
+
+Connecting Oracle as DB
+------------------------------------------------------------------------
+
+Set oConn = CreateObject("ADODB.Connection")
+------------------------------------------------------------------------
+connection="Provider=MSDASQL;Extended Properties=""Driver={Microsoft ODBC for Oracle};" & "Server=nabqadb;" & "Uid=maps4qa;" & "Pwd=Adminqa1234#"""
+
+or
+
+Connection="DSN= ;Uid= ;pwd= "
+
+oConn.open connection
+
+------------------------------------------------------------------------
+
+
+
+
+
+
+------------------------------------------------------------------------
+Connecting Oracle as DB using Wscript
+------------------------------------------------------------------------
+
+Dim strCon
+strCon = "Driver={Microsoft ODBC for Oracle}; " & _
+         "CONNECTSTRING=(DESCRIPTION=" & _
+         "(ADDRESS=(PROTOCOL=TCP)" & _
+         "(HOST=mysrv)(PORT=7001))" & _
+         "(CONNECT_DATA=(SERVICE_NAME=MYDB))); uid=read;pwd=read;"
+
+Dim oCon: Set oCon = WScript.CreateObject("ADODB.Connection")
+Dim oRs: Set oRs = WScript.CreateObject("ADODB.Recordset")
+oCon.Open strCon
+Set oRs = oCon.Execute("SELECT myfield FROM mytable")
+While Not oRs.EOF
+    WSCript.Echo oRs.Fields(0).Value
+    oRs.MoveNext
+Wend
+oCon.Close
+Set oRs = Nothing
+Set oCon = Nothing
+
+"Provider=MSDASQL.1;Extended Properties=""DRIVER={Microsoft ODBC for Oracle};UID=maps4qa;PWD=Adminqa1234#;SERVER=nabqadb;"""
+
+
+
+Transaction Query:
+------------------------------------------------------------------------
+begin tran t1
+
+update tname set sal=sal+1000 where cname="101"
+
+if exist select sal from tname where sal=6000 and cname="101"
+
+commit;
+
+else 
+
+rollback t1

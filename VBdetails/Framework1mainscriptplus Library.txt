@@ -1,0 +1,360 @@
+Main Script
+--------------------------------------------------------
+Dim SifPath
+SifPath=Environment("SifPath")
+
+Call ReadFromSIF(SifPath)
+'Call GetRCFromDriver()
+Driver_Rc=GetRCFromDriver
+If Driver_Rc>0 Then
+	For ScreenNo =1 to Driver_Rc
+Call ReadFromDriver(ScreenNo)
+   For TestCase=StartTestCase to EndTestCase
+'Call MenuToclk()
+Call GetSubTcCurrentScr(TestCase)
+   For SubTc=1 to SubTcCnt
+Call LoadOR(SubTc)
+Call Deo_Deocls()
+Call SortingArray()
+Call Values(TestCase, SubTc,CurrentScreen(SubTc))
+Call Substitute()
+Call BuToClick()
+Call ObjToClick()
+Call LiToClick()
+Call WebTabButtonOrEditToClick()
+Call ActualFrameMsg()
+'Call ActualPopupMsg()
+Call ResultsTestResults()
+Call ReportDB(TestCase,ExpectedFrameMessage,ActualFrameMessage,Result)
+Call UnLoadOR()
+	Next
+	Next
+	Next
+
+	
+End If
+
+
+
+--------------------------------------------------------
+
+Library
+
+--------------------------------------------------------
+
+Dim ObjRep, Driver, ScriptsPath, Reports, UserName, Password,DataBaseTable
+
+Function ReadFromSIF(SifPath)
+
+Datatable.Import SifPath
+
+cnt=Datatable.getsheet("Global").getrowcount
+
+For iteration=1 to cnt
+	Datatable.SetCurrentRow(iteration)
+Var=Datatable.Value("Name","Global")
+Select Case Var
+
+Case "ObjRep"
+	ObjRep=Datatable.Value("Path","Global")
+Case "Driver"
+	Driver=Datatable.Value("Path","Global")
+Case "Scripts"
+	ScriptsPath=Datatable.Value("Path","Global")
+Case "Reports"
+	Reports=Datatable.Value("Path","Global")
+Case "UserName"
+	UserName=Datatable.Value("Path","Global")
+Case "Password"
+	Password=Datatable.Value("Path","Global")
+Case "DataTable"
+	DataBaseTable=Datatable.Value("Path","Global")
+End Select
+	
+Next
+
+'
+End Function
+
+
+Function GetRCFromDriver()
+Datatable.import Driver
+GetRCFromDriver=datatable.getrowcount
+End Function
+
+Dim SubMenuName, StartTestCase, EndTestCase
+Function ReadFromDriver(ScreenNo)
+datatable.setcurrentrow(ScreenNo)
+SubMenuName=datatable.value("SubMenuName")
+StartTestCase=datatable.value("StartTestCase")
+EndTestCase=datatable.value("EndTestCase")	
+End Function
+
+
+Dim CurrentScreen(),SubTcCnt
+
+Function GetSubTcCurrentScr(TestCase)
+RoutingTable="E:\selva\Structure of Framework\DataTable\RoutingTable.xls"
+set db= createobject("Adodb.Connection")
+db.open "Driver={Microsoft Excel Driver (*.xls)};DBQ="&RoutingTable&";ReadOnly=True;"
+Set rs=db.Execute("select * from [Sheet1$] where TestCaseNumber="&TestCase&" and ParentScreen='"&SubMenuName&"'")
+
+While rs.eof<>true
+'Redim Preserve CurrentScreen(1)
+'CurrentScreen(1)=rs("ParentScreen")
+cnt=rs("SubScreenCount")
+For i=1 to cnt
+Redim Preserve CurrentScreen(i)
+CurrentScreen(i)=rs("ParentScreen")&i
+Next
+rs.movenext
+Wend
+
+SubTcCnt=ubound(CurrentScreen)
+Set rs=nothing
+Set db=nothing
+
+End Function
+
+
+'Dim SubTcCnt, CurrentScreen(), ManualTestCaseNumber, MenuToClick
+'Function GetSubTcCurrentScr(TestCase)
+'set db= createobject("Adodb.Connection")
+'set rs= createobject("Adodb.Recordset")
+'db.connectionstring= "Dsn=oracl  ;uid=   ;pwd=   "
+'db.open
+'rs.open "select * from Routingtable where ParentScreen='"&ScreenName&"' and TestCaseNumber="&TestCase,db
+'SubTcCnt=0
+'While rs.eof<>true
+'SubTcCnt=SubTcCnt+1
+'Redim Preserve CurrentScreen(SubTcCnt)
+'CurrentScreen(SubTcCnt)=rs("CurrentScreen")
+'rs.Movenext
+'Wend
+'End Function
+
+
+Function MenuToClk(SubTc)
+End Function
+
+Dim ORPath
+Function LoadOR(SubTc)
+   ORPath= ObjRep&"\"&CurrentScreen(SubTc)&".tsr"
+a=Repositoriescollection.find(ORPath)
+if a<0 then
+Repositoriescollection.add ORPath
+Else
+Print "Already OR Exist"
+End if
+End Function
+
+Dim Deoc(), Deol()
+Public Deocnt, BrowserName, PageName, WebElementName, LinkName, WebButtonName, ImageName, WebTableName
+Function Deo_Deocls()
+set ob=Createobject("Mercury.ObjectRepositoryUtil")
+ob.load  ORPath
+set allob=ob.getallobjects()
+objcnt=allob.count
+Deocnt=0
+for m=0 to objcnt-1
+set oneob=allob.item(m)
+Clsname=oneob.gettoproperty("Class Name")
+If Clsname="WebEdit" or Clsname="WebRadioGroup" or Clsname="WebList" or Clsname="WebCheckbox" then
+Deocnt=Deocnt+1
+Redim Preserve Deoc(Deocnt), Deol(Deocnt)
+Deoc(Deocnt)=Clsname
+Deol(Deocnt)=ob.getlogicalname(oneob)
+Elseif Clsname="Browser" then
+BrowserName = ob.getlogicalname(oneob)
+Elseif Clsname = "Page" then
+PageName=ob.getlogicalname(oneob)
+Elseif Clsname = "WebElement" then
+WebElementName =ob.getlogicalname(oneob)
+Elseif Clsname="Link" then
+LinkName=ob.getlogicalname(oneob)
+Elseif Clsname="WebButton" then
+WebButtonName=ob.getlogicalname(oneob)
+Elseif Clsname="Image" then
+ImageName=ob.getlogicalname(oneob)
+Elseif Clsname="WebTable" then
+WebTableName=ob.getlogicalname(oneob)
+End if
+next
+set oneob=nothing
+set allob=nothing
+set ob=nothing
+End Function
+
+
+Function SortingArray()
+     if Deocnt>0 then
+    for a= 1 to Deocnt-1
+	for b=a+1 to Deocnt
+		if Deol(a) > Deol(b) then
+
+		temp =Deol(a)
+		Deol(a)=Deol(b)
+		Deol(b)=temp
+
+
+		temp=Deoc(a)
+		Deoc(a)=Deoc(b)
+		Deoc(b)=temp
+
+		End if
+	next
+next
+End if
+End Function
+
+
+Dim ValueArray(), ButtonToClick, ObjectToClick, LinkToClick, WebTableToClick, ExpectedFrameMessage, ExpectedPopupMessage, fcnt
+Function Values(Testcase, SubTc, PresentScreen)
+set db=createobject("Adodb.Connection")
+
+db.open "Driver={Microsoft Excel Driver (*.xls)};DBQ="&DataBaseTable&"\"&SubMenuName&".xls;ReadOnly=True;"
+
+Set rs=db.Execute("select * from ["&PresentScreen&"$] where TestCaseNumber="&TestCase)
+
+fcnt=rs.fields.count
+'set rs=createobject("Adodb.recordset")
+'db.connectionstring="Dsn= ;uid= ;pwd= "
+'db.open
+'rs.open "select * from "&CurrentScreen(SubTc)&" where TestCaseNumber="&TestCase &"and SubTestCaseNumber="&SubTc, db
+If isNull(rs("ObjectToClick")) Then
+	ObjectToClick=""
+Else
+ObjectToClick = rs("ObjectToClick")
+End If
+If IsNull(rs("ButtonToClick")) Then
+	ButtonToClick=""
+Else
+ButtonToClick = rs("ButtonToClick")
+End If
+If IsNull(rs("LinkToClick")) Then
+	LinkToClick=""
+Else
+LinkToClick=rs("LinkToClick")
+End If
+'If IsNull(rs(WebTableToClick)) Then
+'WebTableToClick=""
+'Else
+'WebTableToClick=rs(WebTableToClick)
+'End If
+If IsNull(rs("ExpectedFrameMessage")) Then
+	ExpectedFrameMessage =""
+Else
+  ExpectedFrameMessage=rs("ExpectedFrameMessage")  
+End If
+If IsNull(rs("ExpectedPopupMessage")) Then
+	ExpectedPopupMessage=""
+Else
+ExpectedPopupMessage=rs("ExpectedPopupMessage")
+End If
+
+If  fcnt>7 Then
+
+	 If Deocnt>0 then
+		for i= 1 to Deocnt 
+		Redim Preserve ValueArray(i)
+				If isNull (rs(Deol(i))) Then
+				ValueArray(i)=""
+				Else
+				ValueArray(i)=rs(Deol(i))
+				End If
+		Next
+	End if
+End If
+Set db=nothing
+Set rs=nothing
+
+End Function
+
+
+Function Substitute()
+If  fcnt>7 Then
+   if Deocnt>0 then
+for i = 1 to Deocnt
+if Deoc(i)="WebEdit" then
+Browser(BrowserName).Page(PageName).WebEdit(Deol(i)).set ValueArray(i)
+Elseif Deoc(i)="WebList" then
+Browser(BrowserName).Page(PageName).WebList(Deol(i)).select ValueArray(i)
+Elseif Deoc(i)="WebRadioGroup" then
+Browser(BrowserName).Page(PageName).WebRadioButton(Deol(i)).Select ValueArray(i)
+Elseif Deoc(i)="WebCheckBox" then
+Browser(BrowserName).Page(PageName).WebCheckBox(Deol(i)).set ValueArray(i)
+End if
+Next
+End if
+End If
+End Function
+
+
+Function BuToClick()
+   If Len(ButtonToClick) >0 Then
+ Browser(BrowserName).Page(PageName).WebButton(WebButtonName).Click
+   End If
+End Function
+
+
+Function ObjToClick()
+	If Len(ObjectToClick) >0 Then
+	Browser(BrowserName).Page(PageName).Image(ImageName).Click
+	End If
+End Function
+
+Function LiToClick()
+   If Len(LinkToClick) >0 Then
+	   Browser(BrowserName).Page(PageName).Link(LinkName).Click
+   End If
+End Function
+
+Function WebTabButtonOrEditToClick()
+   If  Len(WebTableToClick) >0 Then
+	   Browser(BrowserName).Page(PageName).WebTable(WebTableName).Click
+       End If
+End Function
+
+Dim ActualFrameMessage
+Function ActualFrameMsg()
+   If Len(ExpectedFrameMessage) >0 Then
+	   ActualFrameMessage=Browser(BrowserName).Page(PageName).WebElement(WebElementName).GetROProperty("innertext")
+   End If
+End Function
+
+
+Dim Result
+Function ResultsTestResults()
+   If Len(ExpectedFrameMessage) >0 Then
+	   If ActualFrameMessage=ExpectedFrameMessage Then
+		   Result ="Pass"
+		   Else
+		   Result="Fail"
+	   End If
+   End If
+End Function
+
+
+Function ReportDB(TestCase,ExpectedFrameMessage,ActualFrameMessage,Result)
+  If Len(ExpectedFrameMessage) >0 Then
+		set db=createobject("Adodb.Connection")
+		Set rs=createobject("Adodb.Recordset")
+		db.open "Driver={Microsoft Excel Driver (*.xls)};DBQ="&Reports&"\Result.xls;ReadOnly=False"
+
+		  rs.open "insert into [Result$] values("&TestCase&",'"&ExpectedFrameMessage&"','"&ActualFrameMessage&"','"&Result&"')",db
+Set rs=nothing
+Set db=nothing
+
+  End If
+End Function
+
+
+
+Function UnLoadOR()
+   pos=RepositoriesCollection.Find(ORPath)
+   If pos > 0 Then
+	   RepositoriesCollection.Remove(pos)
+	   Else
+    End If
+End Function
+

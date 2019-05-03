@@ -1,0 +1,6 @@
+SystemUtil.Run "cmd.exe","","C:\WINDOWS\system32","open"
+Print Window( "object class:=ConsoleWindowClass" ).GetROProperty( "title" )
+
+Window( "object class:=ConsoleWindowClass" ).Type  "ipconfig"
+
+Window( "object class:=ConsoleWindowClass" ).Type micReturn

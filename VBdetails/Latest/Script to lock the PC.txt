@@ -1,0 +1,7 @@
+Set obj = CreateObject("WScript.Shell")
+									
+sCmnd = "C:\WINDOWS\system32\rundll32.exe user32.dll,LockWorkStation"
+									
+obj.Run sCmnd, 0, False
+									
+Set obj =nothing

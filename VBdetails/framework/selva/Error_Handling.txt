@@ -1,0 +1,97 @@
+
+
+
+     Error_Handling File
+
+
+'General Header
+'#####################################################################################################################
+'Test Tool/Version		: Quick Test Professional 11
+'Test Tool Settings		: N.A.
+'Browser used			: N.A.
+'Application Automated		: N.A.
+'Test Case Automated		: N.A.
+'Script Name			: CRAFTLite Error handling library
+'Author				: Cognizant
+'Date Created			: 
+'Last Modified by		: Cognizant
+'Date Modified			: 
+'Comments			: 
+'#####################################################################################################################
+Option Explicit	'Forcing Variable declarations
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_ErrHandler
+'Description     		: Function to perform error handling for the framework
+				' This function can be customized to automatically logout and close the application on errors, handle unexpected popups, etc. 
+'Input Parameters 		: Err
+'Return Value    		: None
+'Author				: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_ErrHandler(Err)
+	If (Err.Number <> 0) Then
+		Select Case Environment.Value("OnError")
+			'Stop & Dialog options are not relevant when run from QC Test Lab
+			Case "NextStep"
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "CRAFTLite_Info", "Error occurred during execution! Error description given below. Refer QTP Results for full details...", "Fail"
+				CRAFTLite_LogError Err, False
+			Case "NextIteration"
+				CRAFTLite_LogError Err, False
+				CRAFTLite_ExitIteration()
+			Case "NextTestCase"
+				CRAFTLite_LogError Err, False
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "CRAFTLite_Info", "Execution aborted by user", "Done"
+				CRAFTLite_StopExecution()
+			Case "Stop"
+				CRAFTLite_LogError Err, True
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "CRAFTLite_Info", "Execution aborted by user", "Done"
+				CRAFTLite_StopExecution()
+			Case "Dialog"
+				MsgBox Err.Description
+				CRAFTLite_LogError Err, True
+				CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "CRAFTLite_Info", "Execution aborted by user", "Done"
+				CRAFTLite_StopExecution()
+		End Select
+	End If
+	
+	Err.Clear
+	On Error Goto 0
+End Function
+'#####################################################################################################################
+
+'#####################################################################################################################
+'Function Name    		: CRAFTLite_LogError
+'Description     		: Function to log an error message in the Reported Events sheet in case of error
+'Input Parameters 		: blnStopExecution
+'Return Value    		: None
+'Author				: Cognizant
+'Date Created			: 
+'#####################################################################################################################
+Function CRAFTLite_LogError(Err, blnStopExecution)
+	CRAFTLite_ReportEvent Environment.Value("ReportedEventSheet"), "Error", Err.Description, "Fail"
+	
+	'BASED ON ERROR NUMBER/DESCRIPTION, ERROR HANDLING CAN BE FURTHER CUSTOMIZED AS FOLLOWS
+	'Select Case Err.Description
+	'	Case "Object not found"
+	'		'Do required error handling
+	'	Case "Object disabled"
+	'		'Do required error handling
+	'	............
+	'	............
+	'	............
+	'End Select
+	
+	Dim objFso, objMyFile
+	Set objFso = CreateObject("Scripting.FileSystemObject")
+	If (objFso.FileExists(Environment.Value("RelativePath") & "\StopAllExecution.txt")) Then
+		Set objMyFile = objFso.OpenTextFile(Environment.Value("RelativePath") & "\StopAllExecution.txt", 2)	'Open the StopAllExecution file for writing
+		objMyFile.Writeline(blnStopExecution)
+		objMyFile.Close
+	End If
+	
+	Set objMyFile = Nothing
+	Set objFso = Nothing
+End Function
+'#####################################################################################################################
+

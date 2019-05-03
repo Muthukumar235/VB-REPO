@@ -1,0 +1,82 @@
+
+StrTemp         =             Environment("TestDir")
+ArrTempLoc	=	Split (StrTemp  ,"TEST SCRIPTS\MainScript")
+StrFolderPath	=	  ArrTempLoc (0)
+'msgbox StrFolderPath
+StrLibPath	=	StrFolderPath & "LIB"
+StrResultPath	=	StrFolderPath & "RESULT"
+'msgbox  StrResultPath
+StrDataPath	=	StrFolderPath & "DATA"
+StrScreenShotPath	=	StrFolderPath & "SCREENSHOT"
+'Added on 03/09/2010  for upload file path Not used
+StrUploadFilesPath	=	StrFolderPath & "UPLOAD"
+screenshot_name = StrScreenShotPath  & "\temp.png"
+resultfile_path 	= 	GetResultFolderPath(StrResultPath , "ResultFile")
+'msgbox resultfile_path
+datafile_path = StrDataPath
+StrResultPath	=	StrFolderPath & "RESULT"
+Stroutput=StrResultPath&"\Result.xls"
+logfile_path	=	GetResultFolderPath(StrResultPath , "LogFile")
+StrSIFpath=			StrFolderPath & "SIF"
+StrDriverpath=   StrFolderPath&"DRIVER"
+StrORpath=		StrFolderPath&"SHAREDOR"
+
+
+Public Repository, vbsfilename
+
+Driver_Rc=GetRCFromDriver(StrDriverpath)
+'msgbox Driver_Rc
+If Driver_Rc>0 Then
+            For ScreenNo =1 to Driver_Rc
+				ExcelFlag=0
+	Call ReadFromDriver(ScreenNo)
+            If  Trim(ExecutionStatus)="Y"  Then
+							ExcelFlag=ExcelFlag+1
+				
+				For TestCase=StartTestCase to EndTestCase
+					TCa=SubMenuName&TestCase   
+					 'Instead of separate OR ,single subModule Level OR will be Inherted Change done 27 september.
+				    	  
+                     If  ExcelFlag=1 Then
+						 Repository=StrORpath&"\"&SubMenuName&".tsr"
+						 vbsfilename=StrLibPath&"\"&SubMenuName&".vbs"
+						Call LoadOR(Repository)
+						Call LoadLibray(vbsfilename)
+						Set xl_r = createobject("Excel.application")
+						Set wbook_r = xl_r.Workbooks.Open(datafile_path&"\"&ModuleName&".xls")
+						Set wsheet_r = xl_r.Worksheets(SubMenuName)
+						ExcelFlag=2
+					 End If
+				     
+
+							'Calling The Main Module by passing TC,log ,result file path
+						 TC=TCa&"(wsheet_r,ModuleName,SubMenuName,StrScreenShotPath, TCa)" 	    	
+						Eval (TC)
+                        wbook_r.save
+					
+'					  Call  Kill_Excel()      
+                    Next									     	
+		End If		  
+								If  ExcelFlag<>0 Then
+										Call  UnLoadOR(Repository)  
+										 xl_r.Quit 	   		
+										Set wsheet_r = nothing
+										Set wbook_r = nothing
+										Set xl_r = nothing
+								 End If   	
+	 Next   	
+ End if 
+
+
+'Call Kill_Excel()
+'
+'
+'Function Kill_Excel()
+' set winobj = getobject("winmgmts:")
+'que = "select * from win32_process where name = 'EXCEL.EXE'"
+'set resultobj = winobj.execquery(que)
+'for each processobj in resultobj
+'   processobj.terminate(1)
+'set winobj =nothing
+'set resultobj = nothing
+'   End Function

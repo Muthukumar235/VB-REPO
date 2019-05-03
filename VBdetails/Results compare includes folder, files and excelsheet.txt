@@ -1,0 +1,439 @@
+
+Public  foldnames(),a,b, filenames(),actfilnames(),c
+Dim oFso, oFolder
+
+Basefolderpath="C:\\SanityExceution\Test_reports_B0004\"
+Secondfolderpath="D:\Test_Reports\"
+
+dat=date
+tim=time
+set ob=createobject("Scripting.FileSystemObject")
+set op=ob.opentextfile("D:\Report\Reportscompare.html",8)
+op.writeline("<html>")
+op.writeline("<Body>")
+op.writeline("<table width=1400  border=5>")
+'---------------------------------------------------------------------------
+
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left></th>")
+op.writeline("<th align=Right>Date:"&dat&"</th>")
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left></th>")
+op.writeline("<th align=Right>Time:"&tim&"</th>")
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=centre colspan=2>Results of Report Comparison</th>")
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:white>ExpectedFolderpath</th>")
+op.writeline("<th align=left style=color:yellow>"&Basefolderpath&"</th>")
+op.writeline("</tr>")
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:white>ActualFolderPath</th>")
+op.writeline("<th align=left style=color:yellow>"&Secondfolderpath&"</th>")
+op.writeline("</tr>")
+
+
+Call subfoldernames(Basefolderpath)
+
+Function subfoldernames(folderpath)
+Set oOFso = CreateObject("Scripting.FileSystemObject")
+Set oFolder=oOFso.getfolder(folderpath)
+Set osubfolders=oFolder.subfolders
+'msgbox "subfolders in Base folder path is "&osubfolders.count
+a=0
+For each f in osubfolders
+	a=a+1
+	ReDim Preserve foldnames(a)
+foldnames(a)=f.name
+Next
+End Function
+
+
+basefoldercount= Calculatesubfolder(Basefolderpath)
+secondfoldercount=Calculatesubfolder(Secondfolderpath)
+
+
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:white>Expected Folder Count</th>")
+op.writeline("<th align=left style=color:yellow>"&basefoldercount&"</th>")
+op.writeline("</tr>")
+
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:white>Actual Folder Count</th>")
+op.writeline("<th align=left style=color:yellow>"&secondfoldercount&"</th>")
+op.writeline("</tr>")
+
+
+Function Calculatesubfolder(folderpath)
+Set oOFso = CreateObject("Scripting.FileSystemObject")
+Set oFolder=oOFso.getfolder(folderpath)
+Set osubfolders=oFolder.subfolders
+'msgbox "subfolders in Base folder path is "&osubfolders.count
+Totsubfolders=osubfolders.count
+Calculatesubfolder=Totsubfolders
+End Function
+
+'/Comparing folders  Count  in expected and Actual 
+
+If  (basefoldercount=secondfoldercount) Then
+
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:white>Expected Count Matched With actual</th>")
+op.writeline("<th align=left style=color:yellow>Pass</th>")
+op.writeline("</tr>")
+	Reporter.ReportEvent micPass, "No difference at  folder count","Pass"
+else
+
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:white>Expected Count is Matched With actual</th>")
+op.writeline("<th align=left style=color:red>Fail</th>")
+op.writeline("</tr>")
+	Reporter.ReportEvent micFail ,"Folder count Not matches","Fail"
+	Exittest
+End If
+
+
+
+For fldcnt=1 to a
+
+Set EoOFso1 = CreateObject("Scripting.FileSystemObject")
+Set EoFolder1=EoOFso1.getfolder(Basefolderpath&"\"& foldnames(fldcnt))
+Set  EfilesAccounting=EoFolder1.files
+b=0
+For each nam  in EfilesAccounting
+	b=b+1
+	ReDim Preserve filenames(b)
+ filenames(b)=nam.name
+ next
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left  colspan=2></th>")
+op.writeline("</tr>")
+ 
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:orange colspan=2>"&foldnames(fldcnt)&"</th>")
+op.writeline("</tr>")
+ 
+'msgbox "Number of files in accounting Report"& EfilesAccounting.count
+Expfilescount= EfilesAccounting.count
+
+msgbox "Number of files in expctd"&Expfilescount
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:white>Expected files Count </th>")
+op.writeline("<th align=left style=color:white>"&Expfilescount&"</th>")
+op.writeline("</tr>")
+
+'In actulal  folder we are checking
+Set AoOFso1 = CreateObject("Scripting.FileSystemObject")
+Set AoFolder1=AoOFso1.getfolder(Secondfolderpath&"\"& foldnames(fldcnt))
+ Set  AfilesAccounting=AoFolder1.files
+
+ c=0
+ For Each  fil in  AfilesAccounting
+c=c+1
+ReDim preserve actfilnames(c)
+actfilnames(c)=fil.name
+ Next
+ Actfilescount= AfilesAccounting.count
+ 
+ msgbox  "Number of   files in  Actual" &Actfilescount
+op.writeline("</tr>")
+op.writeline("<tr bgcolor=gray style=color:yellow>")
+op.writeline("<th align=left style=color:white>Actual files Count </th>")
+op.writeline("<th align=left style=color:white>"&Actfilescount&"</th>")
+op.writeline("</tr>")
+
+ 
+
+ For ascending=1 to Actfilescount-1
+	 For ascendingnew=ascending+1 to Actfilescount
+		 If  actfilnames(ascending)>actfilnames(ascendingnew) Then
+			 temp=actfilnames(ascending)
+			 actfilnames(ascending)=actfilnames(ascendingnew)
+			 actfilnames(ascendingnew)=temp
+		 End If
+	 Next
+ Next
+
+		If  Expfilescount=Actfilescount Then
+			 Reporter.ReportEvent micPass, "File Count Matched Between expeced and actual","Pass"
+				 op.writeline("</tr>")
+				op.writeline("<tr bgcolor=gray style=color:yellow>")
+				op.writeline("<th align=left style=color:white>File Count status</th>")
+				op.writeline("<th align=left style=color:yellow>File Count Matched Between expeced and actual</th>")
+				op.writeline("</tr>")
+		elseif Expfilescount>Actfilescount then
+					 Reporter.ReportEvent micPass, "File Count is less in  actual","Pass"
+				op.writeline("</tr>")
+				op.writeline("<tr bgcolor=gray style=color:yellow>")
+				op.writeline("<th align=left style=color:white>File Count status</th>")
+				op.writeline("<th align=left style=color:red>File Count is less in  actual</th>")
+				op.writeline("</tr>")
+		 elseif Expfilescount<Actfilescount then
+						Reporter.ReportEvent micPass, "File Count is More  in  Actual","Pass"   
+				op.writeline("</tr>")
+				op.writeline("<tr bgcolor=gray style=color:yellow>")
+				op.writeline("<th align=left style=color:white>File Count status</th>")
+				op.writeline("<th align=left style=color:red>File Count is More  in  Actual</th>")
+				op.writeline("</tr>")						
+		End If
+
+								Public Fail
+								For  chkfile=1 to  Expfilescount
+
+								Fail="0"  		
+								actfile="none"
+								For act=1 to Actfilescount
+										If filenames(chkfile)= actfilnames(act)Then
+											actfile=actfilnames(act)
+											else
+                                            End If
+                                Next
+
+								op.writeline("</tr>")
+								op.writeline("<tr bgcolor=gray style=color:yellow>")
+								op.writeline("<th align=left style=color:Blue>"&filenames(chkfile)&"</th>")
+   		
+											
+									If actfile="none" Then
+										Reporter.ReportEvent micFail, filenames(chkfile)&"File Name is not available in Actual list","Fail"
+								op.writeline("<th align=left style=color:red>File Name is not available in Actual list</th>")
+								 op.writeline("</tr>")	
+										else
+											 If  filenames(chkfile)=actfile then
+								op.writeline("<th align=left style=color:yellow>File Name is available in Actual list</th>")
+								 op.writeline("</tr>") 			 
+
+												   Set Firstexcel=Createobject("Excel.application")
+												 ' Set Firstbook=Firstexcel.workbooks.open("C:\\SanityExceution\Test_reports_B0004\AccountingReports/BACS-CreditFeesFileDetails.xls.xls")
+													Set Firstbook=Firstexcel.workbooks.open(Basefolderpath&"\"& foldnames(fldcnt)&"\"&filenames(chkfile))
+													Set Firstsheet=Firstexcel.worksheets(1)
+											  
+													EStrfbRC=Firstsheet.usedrange.rows.count
+													EStrfbCC=Firstsheet.usedrange.columns.count
+
+													Set Secondexcel=Createobject("Excel.application")
+													'Set Secondbook=Secondexcel.workbooks.open("D:\\Test_Reports/AccountingReports1/BACS-CreditFeesFileDetails.xls.xls")
+													Set Secondbook=Secondexcel.workbooks.open(Secondfolderpath&"\"& foldnames(fldcnt)&"\"&actfile)			
+													Set Secondsheet=Secondexcel.worksheets(1)
+													
+													AStrscRC=Secondsheet.usedrange.rows.count
+													AStrscCC=Secondsheet.usedrange.columns.count
+												
+																	If  (EStrfbRC=AStrscRC ) AND (EStrfbCC=AStrscCC)Then
+
+													op.writeline("</tr>")
+													op.writeline("<tr bgcolor=gray style=color:yellow>")
+													op.writeline("<th align=left style=color:white>Row & Column count is Matched between Expected & Actual file</th>")
+													op.writeline("<th align=left style=color:yellow>Pass</th>")
+													op.writeline("</tr>")
+																		
+											
+																		For Z= 1 to AStrscRC
+																		   chkemp=Firstsheet.cells(Z,AStrscCC)
+																			If chkemp=Empty Then
+																			 else
+																			datarow=Z
+																			Exit for 
+																			end if 
+																		Next
+
+																		For r =datarow  to  AStrscRC
+																			For c = 1 to AStrscCC
+																				Value1=Trim(Firstsheet.cells(r,c))
+																				Value2=Trim(Secondsheet.cells(r,c))
+																				
+																				If  Value2=Value1 Then
+																						Fail="0" 
+																				else
+																				Reporter.ReportEvent micFail, "Value2 is not equivalent to value1 at "&Firstsheet.cells(r,c),"Fail"
+																				 op.writeline("</tr>")
+																				op.writeline("<tr bgcolor=gray style=color:yellow>")
+																				op.writeline("<th align=left style=color:white>Comparing  the Content of Expected & Actual File Values</th>")
+																				op.writeline("<th align=left style=color:red>Fail</th>")
+																				op.writeline("</tr>")
+																				Fail="1"
+																				Exit for
+																				End If
+																				
+																				Next
+																					If Fail="1"  Then
+																					  Exit for
+																					End If
+																				Next
+																	
+																			  If Fail="0"  Then
+																				  Reporter.ReportEvent micPass, "Value2 is  equivalent to value1 at ","Pass"
+																				 op.writeline("</tr>")
+																				op.writeline("<tr bgcolor=gray style=color:yellow>")
+																				op.writeline("<th align=left style=color:white>Comparing  the Content of Expected & Actual File Values</th>")
+																				op.writeline("<th align=left style=color:yellow>Pass</th>")
+																				op.writeline("</tr>")																				  
+																			  End If
+
+																	else
+																	Reporter.ReportEvent micFail, "Different in row and column count  in any one of the downloaded file","Fail"
+																		op.writeline("</tr>")
+																		op.writeline("<tr bgcolor=gray style=color:yellow>")
+																		op.writeline("<th align=left style=color:white>Row & Column count is Matched between Expected & Actual file</th>")
+																		op.writeline("<th align=left style=color:red>Fail</th>")
+																		op.writeline("</tr>")  												  														
+																	End If
+
+										else
+										  
+										  
+										end if 
+
+								Secondexcel.quit
+								Set Secondsheet=nothing
+								Set Secondbook=nothing
+								Set Secondexcel=nothing
+
+								Firstexcel.quit
+								Set Firstsheet=nothing
+								Set Firstbook=nothing
+								Set Firstexcel=nothing
+						
+									End If
+
+						   		
+						Next             
+  
+Call  Kill_Excel()
+
+Next                
+
+
+'Call  Kill_Excel()
+
+Function Kill_Excel()
+ set winobj = getobject("winmgmts:")
+que = "select * from win32_process where name = 'EXCEL.EXE'"
+set resultobj = winobj.execquery(que)
+for each processobj in resultobj
+   processobj.terminate(1)
+Next
+set winobj =nothing
+set resultobj = nothing
+   End Function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
